@@ -49,6 +49,14 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"Warning: Could not import {test_module}: {e}")
     
+    # Add the static file handling tests
+    try:
+        static_file_module = __import__("test_static_file_handling")
+        test_suite.addTest(unittest.TestLoader().loadTestsFromModule(static_file_module))
+        test_modules_added.append("test_static_file_handling.py")
+    except ImportError as e:
+        print(f"Warning: Could not import static file handling tests: {e}")
+    
     # Add the original tests.py module
     try:
         tests_module = __import__("tests")

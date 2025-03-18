@@ -15,6 +15,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Add src directory to path for imports
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 def run_tests():
     """Run all visualization tests."""
     logger.info("Starting visualization tests...")
@@ -42,10 +45,20 @@ def run_tests():
     # Add end-to-end tests
     try:
         from src.test_e2e_checkbox_visualization import TestCheckboxVisualizationE2E
+        from src.test_e2e_field_visualization import TestFieldVisualizationE2E
         test_suite.addTest(test_loader.loadTestsFromTestCase(TestCheckboxVisualizationE2E))
+        test_suite.addTest(test_loader.loadTestsFromTestCase(TestFieldVisualizationE2E))
         logger.info("Added visualization end-to-end tests")
     except ImportError as e:
         logger.error(f"Error importing visualization end-to-end tests: {str(e)}")
+    
+    # Add static file handling tests
+    try:
+        from src.test_static_file_handling import TestStaticFileHandling
+        test_suite.addTest(test_loader.loadTestsFromTestCase(TestStaticFileHandling))
+        logger.info("Added static file handling tests")
+    except ImportError as e:
+        logger.error(f"Error importing static file handling tests: {str(e)}")
     
     # Run tests
     test_runner = unittest.TextTestRunner(verbosity=2)
