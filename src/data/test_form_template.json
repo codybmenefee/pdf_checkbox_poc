@@ -1,0 +1,177 @@
+{
+  "template_id": "test_form_template",
+  "name": "Test Form Template",
+  "description": "A test form template with various field types for visualization testing",
+  "version": "1.0",
+  "fields": [
+    {
+      "id": "firstName",
+      "name": "First Name",
+      "type": "text",
+      "page": 1,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.12,
+        "width": 0.35,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "lastName",
+      "name": "Last Name",
+      "type": "text",
+      "page": 1,
+      "bbox": {
+        "left": 0.65,
+        "top": 0.12,
+        "width": 0.25,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "email",
+      "name": "Email Address",
+      "type": "text",
+      "page": 1,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.22,
+        "width": 0.4,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "phone",
+      "name": "Phone Number",
+      "type": "text",
+      "page": 1,
+      "bbox": {
+        "left": 0.65,
+        "top": 0.22,
+        "width": 0.25,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "dob",
+      "name": "Date of Birth",
+      "type": "date",
+      "page": 1,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.32,
+        "width": 0.25,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "checkbox1",
+      "name": "I agree to the terms and conditions",
+      "type": "checkbox",
+      "page": 1,
+      "bbox": {
+        "left": 0.1,
+        "top": 0.42,
+        "width": 0.03,
+        "height": 0.03
+      },
+      "value": false
+    },
+    {
+      "id": "checkbox2",
+      "name": "Send me promotional emails",
+      "type": "checkbox",
+      "page": 1,
+      "bbox": {
+        "left": 0.1,
+        "top": 0.48,
+        "width": 0.03,
+        "height": 0.03
+      },
+      "value": true
+    },
+    {
+      "id": "checkbox3",
+      "name": "I confirm my information is correct",
+      "type": "checkbox",
+      "page": 1,
+      "bbox": {
+        "left": 0.1,
+        "top": 0.54,
+        "width": 0.03,
+        "height": 0.03
+      },
+      "value": false
+    },
+    {
+      "id": "amount",
+      "name": "Amount",
+      "type": "number",
+      "page": 1,
+      "bbox": {
+        "left": 0.65,
+        "top": 0.42,
+        "width": 0.25,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "signature",
+      "name": "Signature",
+      "type": "signature",
+      "page": 1,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.7,
+        "width": 0.4,
+        "height": 0.1
+      },
+      "value": ""
+    },
+    {
+      "id": "date",
+      "name": "Date",
+      "type": "date",
+      "page": 1,
+      "bbox": {
+        "left": 0.65,
+        "top": 0.75,
+        "width": 0.25,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "address1",
+      "name": "Address Line 1",
+      "type": "text",
+      "page": 1,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.85,
+        "width": 0.75,
+        "height": 0.04
+      },
+      "value": ""
+    },
+    {
+      "id": "address2",
+      "name": "Address Line 2",
+      "type": "text",
+      "page": 1,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.91,
+        "width": 0.75,
+        "height": 0.04
+      },
+      "value": ""
+    }
+  ]
+}
