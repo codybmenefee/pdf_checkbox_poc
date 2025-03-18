@@ -15,5 +15,20 @@ export MONGODB_DB=pdf_checkbox_poc
 # Set Python path to include the project root
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 
-# Run Flask (using port 5001 to avoid conflicts)
-python3 -m flask --app src.app run --debug --port=5001 
+# Check for Python virtual environment
+if [ -d "venv" ]; then
+    echo "Using existing virtual environment..."
+    source venv/bin/activate
+else
+    echo "Creating virtual environment..."
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+fi
+
+# Run the application with a different port
+echo "Starting application..."
+python -m src.app --port=5004
+
+# Keep log of application
+echo "Application started!" > server.log 
