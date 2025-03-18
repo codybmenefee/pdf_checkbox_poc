@@ -2,6 +2,12 @@
 
 A proof of concept application for automated PDF form checkbox detection and filling using Google Document AI.
 
+## Repository
+
+This project is available on GitHub:
+- Repository URL: https://github.com/codybmenefee/pdf_checkbox_poc
+- Clone with: `git clone https://github.com/codybmenefee/pdf_checkbox_poc.git`
+
 ## Overview
 
 This project allows users to:

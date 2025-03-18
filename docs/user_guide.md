@@ -6,6 +6,18 @@ The PDF Checkbox Extraction & Form Filling System is a powerful tool designed to
 
 ## Getting Started
 
+### Installation
+
+This project is available on GitHub:
+- Repository URL: https://github.com/codybmenefee/pdf_checkbox_poc
+- Clone with: `git clone https://github.com/codybmenefee/pdf_checkbox_poc.git`
+
+To install and run the application:
+1. Clone the repository
+2. Install dependencies with `pip install -r requirements.txt`
+3. Copy `.env.template` to `.env` and configure your environment variables
+4. Run the application with `./run.sh`
+
 ### System Requirements
 
 - Modern web browser (Chrome, Firefox, Safari, or Edge)

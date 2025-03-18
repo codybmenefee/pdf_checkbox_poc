@@ -1,5 +1,11 @@
 # PDF Checkbox Extraction & Form Filling System - Technical Documentation
 
+## Version Control
+
+This project is version-controlled using Git and hosted on GitHub:
+- Repository URL: https://github.com/codybmenefee/pdf_checkbox_poc
+- Clone with: `git clone https://github.com/codybmenefee/pdf_checkbox_poc.git`
+
 ## System Architecture
 
 The PDF Checkbox Extraction & Form Filling System is built with a modular architecture that separates concerns and enables scalability. The system consists of the following core components:
