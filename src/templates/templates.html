@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Management - PDF Checkbox Extraction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .template-card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .tag-badge {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">PDF Checkbox Extraction System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/ui/templates">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/forms">Forms</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1>Template Management</h1>
+                <p class="lead">Manage your checkbox templates extracted from PDF documents</p>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    Upload New PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Filter Templates</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="filterForm">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="tagFilter" class="form-label">Tags</label>
+                                    <input type="text" class="form-control" id="tagFilter" placeholder="Enter tags (comma separated)">
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                                    <button type="button" class="btn btn-secondary ms-2" id="clearFilters">Clear</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="templatesList">
+            <!-- Templates will be loaded here -->
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading templates...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload New PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadForm">
+                        <div class="mb-3">
+                            <label for="pdfFile" class="form-label">PDF Document</label>
+                            <input class="form-control" type="file" id="pdfFile" accept=".pdf" required>
+                        </div>
+                        <div id="uploadProgress" class="progress mb-3 d-none">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div id="processSection" class="d-none">
+                            <div class="mb-3">
+                                <label for="templateName" class="form-label">Template Name</label>
+                                <input type="text" class="form-control" id="templateName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="templateDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="templateDescription" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="templateTags" class="form-label">Tags (comma separated)</label>
+                                <input type="text" class="form-control" id="templateTags">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="uploadButton">Upload</button>
+                    <button type="button" class="btn btn-success d-none" id="processButton">Process & Create Template</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Details Modal -->
+    <div class="modal fade" id="templateDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Template Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="templateDetails">
+                        <!-- Template details will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-info" id="visualizeTemplateButton">Visualize Fields</button>
+                    <button type="button" class="btn btn-primary" id="useTemplateButton">Use Template</button>
+                    <button type="button" class="btn btn-danger" id="deleteTemplateButton">Delete Template</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentFileId = null;
+        let templates = [];
+
+        // DOM Ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load templates
+            loadTemplates();
+
+            // Event listeners
+            document.getElementById('uploadButton').addEventListener('click', uploadPDF);
+            document.getElementById('processButton').addEventListener('click', processAndCreateTemplate);
+            document.getElementById('filterForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                loadTemplates(document.getElementById('tagFilter').value);
+            });
+            document.getElementById('clearFilters').addEventListener('click', function() {
+                document.getElementById('tagFilter').value = '';
+                loadTemplates();
+            });
+        });
+
+        // Load templates
+        function loadTemplates(tags = '') {
+            const templatesList = document.getElementById('templatesList');
+            templatesList.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading templates...</p>
+                </div>
+            `;
+
+            let url = '/api/templates';
+            if (tags) {
+                url += `?tags=${encodeURIComponent(tags)}`;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    templates = data.templates || [];
+                    displayTemplates(templates);
+                })
+                .catch(error => {
+                    console.error('Error loading templates:', error);
+                    templatesList.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <div class="alert alert-danger" role="alert">
+                                Error loading templates. Please try again.
+                            </div>
+                        </div>
+                    `;
+                });
+        }
+
+        // Display templates
+        function displayTemplates(templates) {
+            const templatesList = document.getElementById('templatesList');
+            
+            if (templates.length === 0) {
+                templatesList.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <p>No templates found. Upload a PDF to create your first template.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            templates.forEach(template => {
+                const tagsHtml = template.tags.map(tag => 
+                    `<span class="badge bg-secondary tag-badge">${tag}</span>`
+                ).join('');
+
+                html += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card template-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">${template.name}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">${template.description || 'No description'}</p>
+                                <p><small class="text-muted">Fields: ${template.fields_count}</small></p>
+                                <p><small class="text-muted">Version: ${template.version}</small></p>
+                                <div class="mb-2">${tagsHtml}</div>
+                                <button type="button" class="btn btn-sm btn-primary view-template" data-template-id="${template.template_id}">
+                                    View Details
+                                </button>
+                                <button type="button" class="btn btn-sm btn-info visualize-template" data-template-id="${template.template_id}">
+                                    Visualize Fields
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger delete-template" data-template-id="${template.template_id}">
+                                    Delete
+                                </button>
+                            </div>
+                            <div class="card-footer text-muted">
+                                Created: ${new Date(template.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            templatesList.innerHTML = html;
+
+            // Add event listeners to view buttons
+            document.querySelectorAll('.view-template').forEach(button => {
+                button.addEventListener('click', function() {
+                    const templateId = this.getAttribute('data-template-id');
+                    viewTemplateDetails(templateId);
+                });
+            });
+
+            // Add event listeners to visualize buttons
+            document.querySelectorAll('.visualize-template').forEach(button => {
+                button.addEventListener('click', function() {
+                    const templateId = this.getAttribute('data-template-id');
+                    visualizeTemplate(templateId);
+                });
+            });
+
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-template').forEach(button => {
+                button.addEventListener('click', function() {
+                    const templateId = this.getAttribute('data-template-id');
+                    const templateName = this.closest('.card').querySelector('.card-title').textContent;
+                    if (confirm(`Are you sure you want to delete template "${templateName}"? This action cannot be undone.`)) {
+                        deleteTemplate(templateId);
+                    }
+                });
+            });
+        }
+
+        // View template details
+        function viewTemplateDetails(templateId) {
+            const detailsContainer = document.getElementById('templateDetails');
+            detailsContainer.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading template details...</p>
+                </div>
+            `;
+
+            const modal = new bootstrap.Modal(document.getElementById('templateDetailsModal'));
+            modal.show();
+
+            fetch(`/api/templates/${templateId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const template = data.template;
+                    if (!template) {
+                        detailsContainer.innerHTML = `
+                            <div class="alert alert-danger" role="alert">
+                                Template not found.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const tagsHtml = template.tags.map(tag => 
+                        `<span class="badge bg-secondary tag-badge">${tag}</span>`
+                    ).join('');
+
+                    let fieldsHtml = '';
+                    template.fields.forEach(field => {
+                        fieldsHtml += `
+                            <tr>
+                                <td>${field.field_id}</td>
+                                <td>${field.label}</td>
+                                <td>${field.field_type}</td>
+                                <td>${field.page}</td>
+                                <td>${field.default_value ? 'Yes' : 'No'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    detailsContainer.innerHTML = `
+                        <div class="row mb-3">
+                            <div class="col">
+                                <h4>${template.name}</h4>
+                                <p>${template.description || 'No description'}</p>
+                                <div class="mb-2">${tagsHtml}</div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <h5>Template Information</h5>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th>Template ID</th>
+                                        <td>${template.template_id}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Version</th>
+                                        <td>${template.version}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Created</th>
+                                        <td>${new Date(template.created_at).toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Updated</th>
+                                        <td>${new Date(template.updated_at).toLocaleString()}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <h5>Fields (${template.fields.length})</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Field ID</th>
+                                                <th>Label</th>
+                                                <th>Type</th>
+                                                <th>Page</th>
+                                                <th>Default Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${fieldsHtml}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Set up the Use Template button
+                    const useTemplateButton = document.getElementById('useTemplateButton');
+                    useTemplateButton.setAttribute('data-template-id', templateId);
+                    useTemplateButton.addEventListener('click', function() {
+                        window.location.href = `/ui/forms?template=${templateId}`;
+                    });
+
+                    // Set up the Visualize Template button
+                    const visualizeTemplateButton = document.getElementById('visualizeTemplateButton');
+                    visualizeTemplateButton.setAttribute('data-template-id', templateId);
+                    visualizeTemplateButton.addEventListener('click', function() {
+                        visualizeTemplate(templateId);
+                    });
+
+                    // Set up the Delete Template button
+                    const deleteTemplateButton = document.getElementById('deleteTemplateButton');
+                    deleteTemplateButton.setAttribute('data-template-id', templateId);
+                    deleteTemplateButton.addEventListener('click', function() {
+                        if (confirm(`Are you sure you want to delete template "${template.name}"? This action cannot be undone.`)) {
+                            // Close the modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('templateDetailsModal'));
+                            modal.hide();
+                            
+                            // Delete the template
+                            deleteTemplate(templateId);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading template details:', error);
+                    detailsContainer.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            Error loading template details. Please try again.
+                        </div>
+                    `;
+                });
+        }
+
+        // Upload PDF
+        function uploadPDF() {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a PDF file to upload.');
+                return;
+            }
+
+            const uploadButton = document.getElementById('uploadButton');
+            const processButton = document.getElementById('processButton');
+            const progressBar = document.getElementById('uploadProgress');
+            const progressBarInner = progressBar.querySelector('.progress-bar');
+            
+            console.log('Starting file upload...');
+            console.log('File:', file.name);
+            
+            uploadButton.disabled = true;
+            progressBar.classList.remove('d-none');
+            progressBarInner.style.width = '0%';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/api/documents/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                console.log('Upload successful:', data);
+                progressBarInner.style.width = '100%';
+                currentFileId = data.file_info.file_id;
+                
+                // Show process section
+                document.getElementById('processSection').classList.remove('d-none');
+                uploadButton.classList.add('d-none');
+                processButton.classList.remove('d-none');
+                processButton.disabled = false;  // Explicitly enable the process button
+                console.log('Process button enabled:', !processButton.disabled);
+            })
+            .catch(error => {
+                console.error('Error uploading PDF:', error);
+                alert('Error uploading PDF: ' + error.message);
+                uploadButton.disabled = false;
+                progressBar.classList.add('d-none');
+            });
+        }
+
+        // Process and create template
+        function processAndCreateTemplate() {
+            if (!currentFileId) {
+                alert('No file uploaded. Please upload a PDF first.');
+                return;
+            }
+
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = true;
+            processButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+            // First process the document
+            fetch(`/api/documents/${currentFileId}/process`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Now create the template
+                const templateName = document.getElementById('templateName').value;
+                const templateDescription = document.getElementById('templateDescription').value;
+                const templateTags = document.getElementById('templateTags').value.split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag.length > 0);
+                
+                return fetch('/api/templates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: templateName,
+                        description: templateDescription,
+                        file_id: currentFileId,
+                        tags: templateTags
+                    })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Close modal and reload templates
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                modal.hide();
+                
+                // Reset form
+                document.getElementById('uploadForm').reset();
+                document.getElementById('processSection').classList.add('d-none');
+                document.getElementById('uploadProgress').classList.add('d-none');
+                processButton.classList.add('d-none');
+                document.getElementById('uploadButton').classList.remove('d-none');
+                document.getElementById('uploadButton').disabled = false;
+                processButton.innerHTML = 'Process & Create Template';
+                
+                // Reload templates
+                loadTemplates();
+                
+                // Show success message
+                alert('Template created successfully!');
+                
+                // Automatically show visualization
+                visualizeTemplate(data.template_id);
+            })
+            .catch(error => {
+                console.error('Error processing document:', error);
+                alert('Error: ' + error.message);
+                processButton.disabled = false;
+                processButton.innerHTML = 'Process & Create Template';
+            });
+        }
+
+        // Visualize template
+        function visualizeTemplate(templateId) {
+            // Create a modal for visualization
+            const modalHtml = `
+                <div class="modal fade" id="visualizationModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Template Visualization</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="visualizationContent" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2">Generating visualization...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('visualizationModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('visualizationModal'));
+            modal.show();
+
+            // Generate visualization
+            fetch(`/api/templates/${templateId}/visualize`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    const visualizationContent = document.getElementById('visualizationContent');
+                    let html = '<div class="row">';
+                    
+                    data.pages.forEach((pageUrl, index) => {
+                        html += `
+                            <div class="col-12 mb-4">
+                                <h6>Page ${index + 1}</h6>
+                                <img src="${pageUrl}" class="img-fluid border" alt="Template visualization page ${index + 1}">
+                            </div>
+                        `;
+                    });
+
+                    html += '</div>';
+                    visualizationContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error generating visualization:', error);
+                    document.getElementById('visualizationContent').innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            Error generating visualization: ${error.message}
+                        </div>
+                    `;
+                });
+        }
+
+        // Delete template
+        function deleteTemplate(templateId) {
+            fetch(`/api/templates/${templateId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Error deleting template');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Show success message
+                alert('Template deleted successfully');
+                
+                // Reload templates
+                loadTemplates();
+            })
+            .catch(error => {
+                console.error('Error deleting template:', error);
+                alert('Error deleting template: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>

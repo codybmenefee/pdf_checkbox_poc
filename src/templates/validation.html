@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Validation - PDF Checkbox Extraction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .pdf-container {
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            height: 600px;
+            overflow: auto;
+            position: relative;
+        }
+        .checkbox-overlay {
+            position: absolute;
+            border: 2px solid red;
+            background-color: rgba(255, 0, 0, 0.2);
+            pointer-events: none;
+        }
+        .checkbox-overlay.valid {
+            border-color: green;
+            background-color: rgba(0, 255, 0, 0.2);
+        }
+        .correction-panel {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">PDF Checkbox Extraction System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/templates">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/forms">Forms</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1>Form Validation</h1>
+                <p class="lead">Validate and correct checkbox placements</p>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-success" id="saveCorrectionsButton">
+                    Save Corrections
+                </button>
+                <button type="button" class="btn btn-primary" id="backToFormsButton">
+                    Back to Forms
+                </button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Form Preview</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="pdfContainer" class="pdf-container">
+                            <!-- PDF will be embedded here -->
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading PDF...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Form Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="formInfo">
+                            <!-- Form info will be loaded here -->
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading form information...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Field Validation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="fieldValidation">
+                            <!-- Field validation will be loaded here -->
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading field validation...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Correction Panel</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="correctionPanel">
+                            <!-- Correction panel will be loaded here -->
+                            <p>Select a field from the validation panel to make corrections.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+    <script>
+        // Global variables
+        let formId = null;
+        let formData = null;
+        let pdfDoc = null;
+        let currentPage = 1;
+        let corrections = [];
+
+        // DOM Ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get form ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            formId = document.location.pathname.split('/').pop();
+            
+            if (!formId) {
+                alert('No form ID provided. Redirecting to forms page.');
+                window.location.href = '/ui/forms';
+                return;
+            }
+
+            // Load form data
+            loadFormData();
+
+            // Event listeners
+            document.getElementById('saveCorrectionsButton').addEventListener('click', saveCorrections);
+            document.getElementById('backToFormsButton').addEventListener('click', function() {
+                window.location.href = '/ui/forms';
+            });
+        });
+
+        // Load form data
+        function loadFormData() {
+            fetch(`/api/db/forms/${formId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    formData = data.form;
+                    displayFormInfo(formData);
+                    loadPDF(formData);
+                    displayFieldValidation(formData);
+                })
+                .catch(error => {
+                    console.error('Error loading form data:', error);
+                    alert('Error loading form data: ' + error.message);
+                });
+        }
+
+        // Display form information
+        function displayFormInfo(form) {
+            const formInfo = document.getElementById('formInfo');
+            
+            formInfo.innerHTML = `
+                <h5>${form.name}</h5>
+                <table class="table table-sm">
+                    <tr>
+                        <th>Form ID</th>
+                        <td>${form.form_id}</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td><span class="badge bg-${form.status === 'completed' ? 'success' : 'secondary'}">${form.status}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Created</th>
+                        <td>${new Date(form.created_at).toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                        <th>Fields</th>
+                        <td>${form.field_values.length}</td>
+                    </tr>
+                </table>
+            `;
+        }
+
+        // Load PDF
+        function loadPDF(form) {
+            const pdfContainer = document.getElementById('pdfContainer');
+            pdfContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading PDF...</p>
+                </div>
+            `;
+
+            // In a real implementation, we would load the filled PDF
+            // For this POC, we'll create a placeholder
+            pdfContainer.innerHTML = `
+                <div class="p-4">
+                    <h4>PDF Preview Placeholder</h4>
+                    <p>In a real implementation, the filled PDF would be displayed here with checkbox overlays.</p>
+                    <p>The PDF viewer would allow zooming, panning, and page navigation.</p>
+                    <p>Checkboxes would be highlighted with colored overlays indicating their validation status.</p>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> For this POC, we're simulating the PDF display and validation interface.
+                    </div>
+                    
+                    <!-- Simulated PDF content with checkboxes -->
+                    <div class="border p-3 mt-4 position-relative" style="height: 400px; background-color: #f8f9fa;">
+                        <h5>Sample Form</h5>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" disabled>
+                                <label class="form-check-label">Option 1</label>
+                            </div>
+                            <div class="checkbox-overlay" style="top: 150px; left: 20px; width: 20px; height: 20px;"></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" checked disabled>
+                                <label class="form-check-label">Option 2</label>
+                            </div>
+                            <div class="checkbox-overlay valid" style="top: 180px; left: 20px; width: 20px; height: 20px;"></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" disabled>
+                                <label class="form-check-label">Option 3</label>
+                            </div>
+                            <div class="checkbox-overlay" style="top: 210px; left: 20px; width: 20px; height: 20px;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display field validation
+        function displayFieldValidation(form) {
+            const fieldValidation = document.getElementById('fieldValidation');
+            
+            // Simulate validation results
+            const validationResults = form.field_values.map((fieldValue, index) => {
+                return {
+                    field_id: fieldValue.field_id,
+                    is_valid: index % 3 !== 0, // Simulate some invalid fields
+                    issues: index % 3 !== 0 ? [] : ['Incorrect position']
+                };
+            });
+            
+            let html = '<div class="list-group">';
+            validationResults.forEach(result => {
+                const statusClass = result.is_valid ? 'success' : 'danger';
+                const statusIcon = result.is_valid ? 'check-circle' : 'exclamation-triangle';
+                
+                html += `
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center field-item" 
+                       data-field-id="${result.field_id}">
+                        <div>
+                            <strong>${result.field_id}</strong>
+                            ${result.is_valid ? '' : `<div><small class="text-danger">${result.issues.join(', ')}</small></div>`}
+                        </div>
+                        <span class="badge bg-${statusClass} rounded-pill">
+                            <i class="bi bi-${statusIcon}"></i>
+                        </span>
+                    </a>
+                `;
+            });
+            html += '</div>';
+            
+            fieldValidation.innerHTML = html;
+            
+            // Add event listeners
+            document.querySelectorAll('.field-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const fieldId = this.getAttribute('data-field-id');
+                    showCorrectionPanel(fieldId);
+                });
+            });
+        }
+
+        // Show correction panel
+        function showCorrectionPanel(fieldId) {
+            const correctionPanel = document.getElementById('correctionPanel');
+            
+            // Find field value
+            const fieldValue = formData.field_values.find(fv => fv.field_id === fieldId);
+            if (!fieldValue) {
+                correctionPanel.innerHTML = '<p>Field not found.</p>';
+                return;
+            }
+            
+            correctionPanel.innerHTML = `
+                <div class="correction-panel">
+                    <h5>Correct Field: ${fieldId}</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Current Value</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="currentValue" ${fieldValue.value ? 'checked' : ''} disabled>
+                            <label class="form-check-label" for="currentValue">
+                                ${fieldValue.value ? 'Checked' : 'Unchecked'}
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Adjust Value</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="newValue" ${fieldValue.value ? 'checked' : ''}>
+                            <label class="form-check-label" for="newValue">
+                                Check/Uncheck
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Position Adjustment</label>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label">X Offset (px)</label>
+                                <input type="number" class="form-control" id="xOffset" value="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Y Offset (px)</label>
+                                <input type="number" class="form-control" id="yOffset" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="applyCorrection" data-field-id="${fieldId}">
+                        Apply Correction
+                    </button>
+                </div>
+            `;
+            
+            // Add event listener
+            document.getElementById('applyCorrection').addEventListener('click', function() {
+                const fieldId = this.getAttribute('data-field-id');
+                const newValue = document.getElementById('newValue').checked;
+                const xOffset = parseInt(document.getElementById('xOffset').value) || 0;
+                const yOffset = parseInt(document.getElementById('yOffset').value) || 0;
+                
+                // Add to corrections
+                corrections.push({
+                    field_id: fieldId,
+                    value: newValue,
+                    position_adjustment: {
+                        x: xOffset,
+                        y: yOffset
+                    }
+                });
+                
+                // Update UI
+                const fieldItem = document.querySelector(`.field-item[data-field-id="${fieldId}"]`);
+                if (fieldItem) {
+                    fieldItem.querySelector('.badge').className = 'badge bg-success rounded-pill';
+                    fieldItem.querySelector('.badge i').className = 'bi bi-check-circle';
+                    const smallText = fieldItem.querySelector('small');
+                    if (smallText) {
+                        smallText.textContent = 'Correction applied';
+                        smallText.className = 'text-success';
+                    }
+                }
+                
+                alert(`Correction applied to field ${fieldId}`);
+            });
+        }
+
+        // Save corrections
+        function saveCorrections() {
+            if (corrections.length === 0) {
+                alert('No corrections to save.');
+                return;
+            }
+            
+            const saveButton = document.getElementById('saveCorrectionsButton');
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+            
+            fetch('/api/validation/corrections', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    form_id: formId,
+                    corrections: corrections
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                alert('Corrections saved successfully!');
+                window.location.href = '/ui/forms';
+            })
+            .catch(error => {
+                console.error('Error saving corrections:', error);
+                alert('Error saving corrections: ' + error.message);
+                saveButton.disabled = false;
+                saveButton.innerHTML = 'Save Corrections';
+            });
+        }
+    </script>
+</body>
+</html>

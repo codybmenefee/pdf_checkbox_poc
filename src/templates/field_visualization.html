@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Extraction Visualization</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('ui_api.serve_static', filename='css/field-visualization.css') }}">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar with controls and metrics -->
+            <div class="col-md-3 sidebar">
+                <div class="p-3">
+                    <h2>Field Extraction</h2>
+                    <div class="form-info mb-4">
+                        <h5 id="documentName">Document: Loading...</h5>
+                        <p id="documentDate">Processed: Loading...</p>
+                    </div>
+
+                    <!-- Summary dashboard -->
+                    <div class="summary-dashboard mb-4">
+                        <h4>Extraction Metrics</h4>
+                        <div class="metric-card">
+                            <div class="metric-label">Total Fields</div>
+                            <div class="metric-value" id="totalFields">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Fields by Type</div>
+                            <div id="fieldTypeCounts">
+                                <!-- Field type counts will be added here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Display Controls -->
+                    <div class="display-controls mb-4">
+                        <h4>Display Options</h4>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="toggleFieldOverlay" checked>
+                            <label class="form-check-label" for="toggleFieldOverlay">Show Field Overlays</label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="toggleFieldLabels" checked>
+                            <label class="form-check-label" for="toggleFieldLabels">Show Field Labels</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Filter by Field Type</label>
+                            <div id="fieldTypeFilters">
+                                <!-- Field type filter checkboxes will be added here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zoom Controls -->
+                    <div class="zoom-controls mb-4">
+                        <h4>Zoom Options</h4>
+                        <div class="d-flex justify-content-between mb-2">
+                            <button id="zoomOut" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-zoom-out"></i>
+                            </button>
+                            <span id="zoomLevel" class="align-self-center">100%</span>
+                            <button id="zoomIn" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-zoom-in"></i>
+                            </button>
+                        </div>
+                        <button id="zoomReset" class="btn btn-sm btn-outline-secondary w-100">Reset Zoom</button>
+                    </div>
+
+                    <!-- Selection Controls -->
+                    <div class="selection-controls mb-4">
+                        <h4>Field Selection</h4>
+                        <div class="d-flex justify-content-between mb-2">
+                            <button id="selectAll" class="btn btn-sm btn-outline-primary">Select All</button>
+                            <button id="deselectAll" class="btn btn-sm btn-outline-secondary">Deselect All</button>
+                        </div>
+                        <button id="deleteSelected" class="btn btn-sm btn-outline-danger w-100 mb-2">Delete Selected</button>
+                        <div class="small text-muted">
+                            Hold Shift to multi-select fields
+                        </div>
+                    </div>
+
+                    <!-- Export controls -->
+                    <div class="export-controls mb-4">
+                        <h4>Export Options</h4>
+                        <button id="exportJsonBtn" class="btn btn-primary w-100 mb-2">Export JSON</button>
+                        <button id="saveChanges" class="btn btn-success w-100 mb-2">Save Changes</button>
+                    </div>
+
+                    <!-- Keyboard Shortcuts -->
+                    <div class="keyboard-shortcuts mb-4">
+                        <h4>Keyboard Shortcuts</h4>
+                        <div class="shortcut-list small">
+                            <div><span class="shortcut-key">←/→</span> Previous/Next Page</div>
+                            <div><span class="shortcut-key">O</span> Toggle Overlay</div>
+                            <div><span class="shortcut-key">L</span> Toggle Labels</div>
+                            <div><span class="shortcut-key">A</span> Select All Fields</div>
+                            <div><span class="shortcut-key">Esc</span> Deselect All</div>
+                            <div><span class="shortcut-key">Delete</span> Delete Selected</div>
+                            <div><span class="shortcut-key">+/-</span> Zoom In/Out</div>
+                            <div><span class="shortcut-key">Ctrl+S</span> Save Changes</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content area -->
+            <div class="col-md-9 main-content">
+                <div class="document-view-container">
+                    <!-- Page navigation controls -->
+                    <div class="page-controls">
+                        <button id="prevPage" class="btn btn-sm btn-secondary" disabled>&lt; Previous</button>
+                        <span id="pageInfo">Page 1 of 1</span>
+                        <button id="nextPage" class="btn btn-sm btn-secondary" disabled>Next &gt;</button>
+                    </div>
+
+                    <!-- Document display area -->
+                    <div class="document-display">
+                        <div id="documentContainer" class="position-relative">
+                            <img id="documentImage" class="w-100" src="" alt="Document page">
+                            <div id="fieldOverlay" class="field-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Field list -->
+                <div class="field-list-container mt-3">
+                    <h4>Extracted Fields <small class="text-muted">(Current Page)</small></h4>
+                    <table class="table field-table">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fieldTableBody">
+                            <!-- Field items will be added here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Field detail modal -->
+    <div class="modal fade" id="fieldDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Field Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Field Name</label>
+                        <input type="text" class="form-control" id="detailFieldName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Field Type</label>
+                        <input type="text" class="form-control" id="detailFieldType" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Field Value</label>
+                        <input type="text" class="form-control" id="detailFieldValue" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Coordinates</label>
+                        <textarea class="form-control" id="detailFieldCoordinates" rows="4" readonly></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('ui_api.serve_static', filename='js/field-visualization.js') }}"></script>
+</body>
+</html> 

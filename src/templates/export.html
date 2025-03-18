@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Export - PDF Checkbox Extraction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .export-option-card {
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .export-option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .export-option-card.selected {
+            border: 2px solid #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .export-history-item {
+            border-left: 3px solid #ddd;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+        .export-history-item.success {
+            border-left-color: #198754;
+        }
+        .export-history-item.failed {
+            border-left-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">PDF Checkbox Extraction System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/templates">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/forms">Forms</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1>Form Export</h1>
+                <p class="lead">Export your filled form to e-signature platforms</p>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-primary" id="backToFormsButton">
+                    Back to Forms
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Form Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="formInfo">
+                            <!-- Form info will be loaded here -->
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading form information...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Export History</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="exportHistory">
+                            <!-- Export history will be loaded here -->
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading export history...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Export Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="exportOptions">
+                            <div class="col-md-4">
+                                <div class="card export-option-card" data-destination="onespan">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">OneSpan</h5>
+                                        <p class="card-text">Export to OneSpan for e-signatures</p>
+                                        <img src="https://via.placeholder.com/100x50?text=OneSpan" alt="OneSpan" class="img-fluid mb-3">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card export-option-card" data-destination="docusign">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">DocuSign</h5>
+                                        <p class="card-text">Export to DocuSign for e-signatures</p>
+                                        <img src="https://via.placeholder.com/100x50?text=DocuSign" alt="DocuSign" class="img-fluid mb-3">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card export-option-card" data-destination="download">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Download PDF</h5>
+                                        <p class="card-text">Download the filled PDF document</p>
+                                        <img src="https://via.placeholder.com/100x50?text=PDF" alt="PDF" class="img-fluid mb-3">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Export Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="exportConfig">
+                            <p>Select an export option above to configure export settings.</p>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-primary" id="exportButton" disabled>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Success Modal -->
+    <div class="modal fade" id="exportSuccessModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export Successful</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                        </div>
+                        <h4>Export Completed Successfully</h4>
+                        <p id="exportSuccessMessage">Your form has been exported successfully.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="viewExportButton">View Details</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let formId = null;
+        let formData = null;
+        let selectedDestination = null;
+
+        // DOM Ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get form ID from URL
+            formId = document.location.pathname.split('/').pop();
+            
+            if (!formId) {
+                alert('No form ID provided. Redirecting to forms page.');
+                window.location.href = '/ui/forms';
+                return;
+            }
+
+            // Load form data
+            loadFormData();
+
+            // Event listeners
+            document.getElementById('backToFormsButton').addEventListener('click', function() {
+                window.location.href = '/ui/forms';
+            });
+
+            document.getElementById('exportButton').addEventListener('click', exportForm);
+
+            // Export option selection
+            document.querySelectorAll('.export-option-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    // Remove selected class from all cards
+                    document.querySelectorAll('.export-option-card').forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked card
+                    this.classList.add('selected');
+                    
+                    // Set selected destination
+                    selectedDestination = this.getAttribute('data-destination');
+                    
+                    // Update export config
+                    updateExportConfig(selectedDestination);
+                    
+                    // Enable export button
+                    document.getElementById('exportButton').disabled = false;
+                });
+            });
+        });
+
+        // Load form data
+        function loadFormData() {
+            fetch(`/api/db/forms/${formId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    formData = data.form;
+                    displayFormInfo(formData);
+                    displayExportHistory(formData);
+                })
+                .catch(error => {
+                    console.error('Error loading form data:', error);
+                    alert('Error loading form data: ' + error.message);
+                });
+        }
+
+        // Display form information
+        function displayFormInfo(form) {
+            const formInfo = document.getElementById('formInfo');
+            
+            // Find template name (in a real implementation, this would be fetched from the database)
+            const templateName = "Template " + form.template_id.substring(0, 8);
+            
+            formInfo.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>${form.name}</h4>
+                        <p>Template: ${templateName}</p>
+                        <p>Status: <span class="badge bg-${form.status === 'completed' ? 'success' : 'secondary'}">${form.status}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Form ID</th>
+                                <td>${form.form_id}</td>
+                            </tr>
+                            <tr>
+                                <th>Created</th>
+                                <td>${new Date(form.created_at).toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <th>Fields</th>
+                                <td>${form.field_values.length}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                            <button type="button" class="btn btn-outline-primary" id="previewButton">
+                                Preview Form
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="downloadButton">
+                                Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners
+            document.getElementById('previewButton').addEventListener('click', function() {
+                window.open(`/api/forms/${formId}/preview`, '_blank');
+            });
+            
+            document.getElementById('downloadButton').addEventListener('click', function() {
+                window.location.href = `/api/forms/${formId}/download`;
+            });
+        }
+
+        // Display export history
+        function displayExportHistory(form) {
+            const exportHistory = document.getElementById('exportHistory');
+            
+            if (!form.export_history || form.export_history.length === 0) {
+                exportHistory.innerHTML = '<p>No export history available.</p>';
+                return;
+            }
+            
+            let html = '';
+            form.export_history.forEach(record => {
+                const statusClass = record.status === 'success' ? 'success' : 'failed';
+                
+                html += `
+                    <div class="export-history-item ${statusClass}">
+                        <div class="d-flex justify-content-between">
+                            <strong>${record.destination}</strong>
+                            <span class="badge bg-${record.status === 'success' ? 'success' : 'danger'}">${record.status}</span>
+                        </div>
+                        <div><small class="text-muted">${new Date(record.timestamp).toLocaleString()}</small></div>
+                    </div>
+                `;
+            });
+            
+            exportHistory.innerHTML = html;
+        }
+
+        // Update export configuration
+        function updateExportConfig(destination) {
+            const exportConfig = document.getElementById('exportConfig');
+            
+            if (destination === 'onespan') {
+                exportConfig.innerHTML = `
+                    <h5>OneSpan Export Configuration</h5>
+                    <div class="mb-3">
+                        <label for="signerEmail" class="form-label">Signer Email</label>
+                        <input type="email" class="form-control" id="signerEmail" placeholder="Enter signer's email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="signerName" class="form-label">Signer Name</label>
+                        <input type="text" class="form-control" id="signerName" placeholder="Enter signer's name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="expiryDays" class="form-label">Expiry (days)</label>
+                        <input type="number" class="form-control" id="expiryDays" value="30">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="sendEmail" checked>
+                        <label class="form-check-label" for="sendEmail">Send email to signer</label>
+                    </div>
+                `;
+            } else if (destination === 'docusign') {
+                exportConfig.innerHTML = `
+                    <h5>DocuSign Export Configuration</h5>
+                    <div class="mb-3">
+                        <label for="recipientEmail" class="form-label">Recipient Email</label>
+                        <input type="email" class="form-control" id="recipientEmail" placeholder="Enter recipient's email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipientName" class="form-label">Recipient Name</label>
+                        <input type="text" class="form-control" id="recipientName" placeholder="Enter recipient's name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="emailSubject" class="form-label">Email Subject</label>
+                        <input type="text" class="form-control" id="emailSubject" placeholder="Enter email subject">
+                    </div>
+                    <div class="mb-3">
+                        <label for="emailMessage" class="form-label">Email Message</label>
+                        <textarea class="form-control" id="emailMessage" rows="3" placeholder="Enter email message"></textarea>
+                    </div>
+                `;
+            } else if (destination === 'download') {
+                exportConfig.innerHTML = `
+                    <h5>Download PDF</h5>
+                    <p>Click the Export button to download the filled PDF document.</p>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="flattenPdf" checked>
+                        <label class="form-check-label" for="flattenPdf">Flatten PDF (make fields non-editable)</label>
+                    </div>
+                `;
+            } else {
+                exportConfig.innerHTML = '<p>Select an export option above to configure export settings.</p>';
+            }
+        }
+
+        // Export form
+        function exportForm() {
+            if (!selectedDestination) {
+                alert('Please select an export destination.');
+                return;
+            }
+            
+            const exportButton = document.getElementById('exportButton');
+            exportButton.disabled = true;
+            exportButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Exporting...';
+            
+            let apiEndpoint = '';
+            let requestData = { form_id: formId };
+            
+            if (selectedDestination === 'onespan') {
+                apiEndpoint = '/api/export/onespan';
+                requestData.signer_email = document.getElementById('signerEmail').value;
+                requestData.signer_name = document.getElementById('signerName').value;
+                requestData.expiry_days = document.getElementById('expiryDays').value;
+                requestData.send_email = document.getElementById('sendEmail').checked;
+            } else if (selectedDestination === 'docusign') {
+                apiEndpoint = '/api/export/docusign';
+                requestData.recipient_email = document.getElementById('recipientEmail').value;
+                requestData.recipient_name = document.getElementById('recipientName').value;
+                requestData.email_subject = document.getElementById('emailSubject').value;
+                requestData.email_message = document.getElementById('emailMessage').value;
+            } else if (selectedDestination === 'download') {
+                // Direct download
+                window.location.href = `/api/forms/${formId}/download?flatten=${document.getElementById('flattenPdf').checked}`;
+                exportButton.disabled = false;
+                exportButton.innerHTML = 'Export';
+                return;
+            }
+            
+            fetch(apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Show success modal
+                const successMessage = document.getElementById('exportSuccessMessage');
+                if (selectedDestination === 'onespan') {
+                    successMessage.textContent = 'Your form has been exported to OneSpan successfully.';
+                } else if (selectedDestination === 'docusign') {
+                    successMessage.textContent = 'Your form has been exported to DocuSign successfully.';
+                }
+                
+                const successModal = new bootstrap.Modal(document.getElementById('exportSuccessModal'));
+                successModal.show();
+                
+                // Reset button
+                exportButton.disabled = false;
+                exportButton.innerHTML = 'Export';
+                
+                // Reload form data to update export history
+                loadFormData();
+            })
+            .catch(error => {
+                console.error('Error exporting form:', error);
+                alert('Error exporting form: ' + error.message);
+                exportButton.disabled = false;
+                exportButton.innerHTML = 'Export';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Management - PDF Checkbox Extraction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .form-card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">PDF Checkbox Extraction System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/templates">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/ui/forms">Forms</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1>Form Management</h1>
+                <p class="lead">Fill and manage forms using your checkbox templates</p>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFormModal">
+                    Create New Form
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Filter Forms</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="filterForm">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="templateFilter" class="form-label">Template</label>
+                                    <select class="form-select" id="templateFilter">
+                                        <option value="">All Templates</option>
+                                        <!-- Templates will be loaded here -->
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="statusFilter" class="form-label">Status</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">All Statuses</option>
+                                        <option value="draft">Draft</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="exported">Exported</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                                    <button type="button" class="btn btn-secondary ms-2" id="clearFilters">Clear</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="formsList">
+            <!-- Forms will be loaded here -->
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading forms...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Form Modal -->
+    <div class="modal fade" id="createFormModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Form</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createFormForm">
+                        <div class="mb-3">
+                            <label for="formName" class="form-label">Form Name</label>
+                            <input type="text" class="form-control" id="formName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateSelect" class="form-label">Select Template</label>
+                            <select class="form-select" id="templateSelect" required>
+                                <option value="">Select a template</option>
+                                <!-- Templates will be loaded here -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pdfFile" class="form-label">Upload PDF to Fill</label>
+                            <input class="form-control" type="file" id="pdfFile" accept=".pdf" required>
+                        </div>
+                        <div id="uploadProgress" class="progress mb-3 d-none">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div id="fieldValuesSection" class="d-none">
+                            <h5 class="mb-3">Field Values</h5>
+                            <div id="fieldValuesList">
+                                <!-- Field values will be loaded here -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="uploadPdfButton">Upload PDF</button>
+                    <button type="button" class="btn btn-success d-none" id="fillFormButton">Fill Form</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Details Modal -->
+    <div class="modal fade" id="formDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Form Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="formDetails">
+                        <!-- Form details will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="downloadFormButton">Download</button>
+                    <button type="button" class="btn btn-success" id="validateFormButton">Validate</button>
+                    <button type="button" class="btn btn-info" id="exportFormButton">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export Form</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="exportForm">
+                        <div class="mb-3">
+                            <label for="exportDestination" class="form-label">Export Destination</label>
+                            <select class="form-select" id="exportDestination" required>
+                                <option value="">Select destination</option>
+                                <option value="onespan">OneSpan</option>
+                                <option value="docusign">DocuSign</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 d-none" id="otherDestinationSection">
+                            <label for="otherDestination" class="form-label">Specify Destination</label>
+                            <input type="text" class="form-control" id="otherDestination">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="confirmExportButton">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentFormId = null;
+        let currentFileId = null;
+        let templates = [];
+        let forms = [];
+        let currentTemplate = null;
+
+        // DOM Ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load templates and forms
+            loadTemplates();
+            loadForms();
+
+            // Event listeners
+            document.getElementById('uploadPdfButton').addEventListener('click', uploadPDF);
+            document.getElementById('fillFormButton').addEventListener('click', fillForm);
+            document.getElementById('templateSelect').addEventListener('change', loadTemplateFields);
+            document.getElementById('filterForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                loadForms(
+                    document.getElementById('templateFilter').value,
+                    document.getElementById('statusFilter').value
+                );
+            });
+            document.getElementById('clearFilters').addEventListener('click', function() {
+                document.getElementById('templateFilter').value = '';
+                document.getElementById('statusFilter').value = '';
+                loadForms();
+            });
+            document.getElementById('exportDestination').addEventListener('change', function() {
+                const otherSection = document.getElementById('otherDestinationSection');
+                if (this.value === 'other') {
+                    otherSection.classList.remove('d-none');
+                } else {
+                    otherSection.classList.add('d-none');
+                }
+            });
+            document.getElementById('confirmExportButton').addEventListener('click', exportForm);
+        });
+
+        // Load templates
+        function loadTemplates() {
+            fetch('/api/templates')
+                .then(response => response.json())
+                .then(data => {
+                    templates = data.templates || [];
+                    
+                    // Populate template select in create form modal
+                    const templateSelect = document.getElementById('templateSelect');
+                    templateSelect.innerHTML = '<option value="">Select a template</option>';
+                    
+                    // Populate template filter
+                    const templateFilter = document.getElementById('templateFilter');
+                    templateFilter.innerHTML = '<option value="">All Templates</option>';
+                    
+                    templates.forEach(template => {
+                        const option = document.createElement('option');
+                        option.value = template.template_id;
+                        option.textContent = template.name;
+                        
+                        templateSelect.appendChild(option.cloneNode(true));
+                        templateFilter.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading templates:', error);
+                    alert('Error loading templates. Please try again.');
+                });
+        }
+
+        // Load forms
+        function loadForms(templateId = '', status = '') {
+            const formsList = document.getElementById('formsList');
+            formsList.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading forms...</p>
+                </div>
+            `;
+
+            let url = '/api/db/forms';
+            const params = [];
+            if (templateId) params.push(`template_id=${encodeURIComponent(templateId)}`);
+            if (status) params.push(`status=${encodeURIComponent(status)}`);
+            if (params.length > 0) url += '?' + params.join('&');
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    forms = data.forms || [];
+                    displayForms(forms);
+                })
+                .catch(error => {
+                    console.error('Error loading forms:', error);
+                    formsList.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <div class="alert alert-danger" role="alert">
+                                Error loading forms. Please try again.
+                            </div>
+                        </div>
+                    `;
+                });
+        }
+
+        // Display forms
+        function displayForms(forms) {
+            const formsList = document.getElementById('formsList');
+            
+            if (forms.length === 0) {
+                formsList.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <p>No forms found. Create a new form to get started.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            forms.forEach(form => {
+                // Find template name
+                const template = templates.find(t => t.template_id === form.template_id) || { name: 'Unknown Template' };
+                
+                // Status badge color
+                let statusClass = 'bg-secondary';
+                if (form.status === 'completed') statusClass = 'bg-success';
+                if (form.status === 'exported') statusClass = 'bg-info';
+
+                html += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card form-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">${form.name}</h5>
+                                <span class="badge ${statusClass} status-badge">${form.status}</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Template: ${template.name}</p>
+                                <p><small class="text-muted">Fields: ${form.field_values_count}</small></p>
+                                <button type="button" class="btn btn-sm btn-primary view-form" data-form-id="${form.form_id}">
+                                    View Details
+                                </button>
+                            </div>
+                            <div class="card-footer text-muted">
+                                Created: ${new Date(form.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            formsList.innerHTML = html;
+
+            // Add event listeners to view buttons
+            document.querySelectorAll('.view-form').forEach(button => {
+                button.addEventListener('click', function() {
+                    const formId = this.getAttribute('data-form-id');
+                    viewFormDetails(formId);
+                });
+            });
+        }
+
+        // View form details
+        function viewFormDetails(formId) {
+            const detailsContainer = document.getElementById('formDetails');
+            detailsContainer.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading form details...</p>
+                </div>
+            `;
+
+            currentFormId = formId;
+            const modal = new bootstrap.Modal(document.getElementById('formDetailsModal'));
+            modal.show();
+
+            fetch(`/api/db/forms/${formId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const form = data.form;
+                    if (!form) {
+                        detailsContainer.innerHTML = `
+                            <div class="alert alert-danger" role="alert">
+                                Form not found.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // Find template
+                    const template = templates.find(t => t.template_id === form.template_id) || { name: 'Unknown Template' };
+
+                    // Status badge color
+                    let statusClass = 'bg-secondary';
+                    if (form.status === 'completed') statusClass = 'bg-success';
+                    if (form.status === 'exported') statusClass = 'bg-info';
+
+                    let fieldValuesHtml = '';
+                    form.field_values.forEach(fieldValue => {
+                        fieldValuesHtml += `
+                            <tr>
+                                <td>${fieldValue.field_id}</td>
+                                <td>${fieldValue.value ? 'Yes' : 'No'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    let exportHistoryHtml = '';
+                    if (form.export_history && form.export_history.length > 0) {
+                        form.export_history.forEach(export_record => {
+                            exportHistoryHtml += `
+                                <tr>
+                                    <td>${new Date(export_record.timestamp).toLocaleString()}</td>
+                                    <td>${export_record.destination}</td>
+                                    <td><span class="badge ${export_record.status === 'success' ? 'bg-success' : 'bg-danger'}">${export_record.status}</span></td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        exportHistoryHtml = `
+                            <tr>
+                                <td colspan="3" class="text-center">No export history</td>
+                            </tr>
+                        `;
+                    }
+
+                    detailsContainer.innerHTML = `
+                        <div class="row mb-3">
+                            <div class="col">
+                                <h4>${form.name}</h4>
+                                <p>Template: ${template.name}</p>
+                                <span class="badge ${statusClass} status-badge">${form.status}</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <h5>Form Information</h5>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th>Form ID</th>
+                                        <td>${form.form_id}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Template ID</th>
+                                        <td>${form.template_id}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Created</th>
+                                        <td>${new Date(form.created_at).toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Document</th>
+                                        <td>${form.document.original_filename}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <h5>Field Values (${form.field_values.length})</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Field ID</th>
+                                                <th>Checked</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${fieldValuesHtml}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <h5>Export History</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>Destination</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${exportHistoryHtml}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Set up buttons
+                    const downloadButton = document.getElementById('downloadFormButton');
+                    const validateButton = document.getElementById('validateFormButton');
+                    const exportButton = document.getElementById('exportFormButton');
+                    
+                    downloadButton.onclick = () => downloadForm(formId);
+                    validateButton.onclick = () => window.location.href = `/ui/validation/${formId}`;
+                    exportButton.onclick = () => showExportModal(formId);
+                })
+                .catch(error => {
+                    console.error('Error loading form details:', error);
+                    detailsContainer.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            Error loading form details. Please try again.
+                        </div>
+                    `;
+                });
+        }
+
+        // Load template fields
+        function loadTemplateFields() {
+            const templateId = document.getElementById('templateSelect').value;
+            if (!templateId) {
+                document.getElementById('fieldValuesSection').classList.add('d-none');
+                return;
+            }
+
+            fetch(`/api/templates/${templateId}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentTemplate = data.template;
+                    if (!currentTemplate) {
+                        alert('Template not found.');
+                        return;
+                    }
+
+                    const fieldValuesList = document.getElementById('fieldValuesList');
+                    fieldValuesList.innerHTML = '';
+
+                    currentTemplate.fields.forEach(field => {
+                        if (field.field_type === 'checkbox') {
+                            const fieldDiv = document.createElement('div');
+                            fieldDiv.className = 'mb-3 form-check';
+                            fieldDiv.innerHTML = `
+                                <input type="checkbox" class="form-check-input" id="field_${field.field_id}" 
+                                    name="field_${field.field_id}" data-field-id="${field.field_id}" 
+                                    ${field.default_value ? 'checked' : ''}>
+                                <label class="form-check-label" for="field_${field.field_id}">
+                                    ${field.label || field.field_id}
+                                </label>
+                                <div><small class="text-muted">Page: ${field.page}</small></div>
+                            `;
+                            fieldValuesList.appendChild(fieldDiv);
+                        }
+                    });
+
+                    document.getElementById('fieldValuesSection').classList.remove('d-none');
+                })
+                .catch(error => {
+                    console.error('Error loading template fields:', error);
+                    alert('Error loading template fields. Please try again.');
+                });
+        }
+
+        // Upload PDF
+        function uploadPDF() {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a PDF file to upload.');
+                return;
+            }
+
+            const uploadButton = document.getElementById('uploadPdfButton');
+            const progressBar = document.getElementById('uploadProgress');
+            const progressBarInner = progressBar.querySelector('.progress-bar');
+            
+            uploadButton.disabled = true;
+            progressBar.classList.remove('d-none');
+            progressBarInner.style.width = '0%';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/api/documents/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                progressBarInner.style.width = '100%';
+                currentFileId = data.file_info.file_id;
+                
+                // Show fill form button
+                uploadButton.classList.add('d-none');
+                document.getElementById('fillFormButton').classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Error uploading PDF:', error);
+                alert('Error uploading PDF: ' + error.message);
+                uploadButton.disabled = false;
+                progressBar.classList.add('d-none');
+            });
+        }
+
+        // Fill form
+        function fillForm() {
+            const templateId = document.getElementById('templateSelect').value;
+            const formName = document.getElementById('formName').value;
+            
+            if (!templateId) {
+                alert('Please select a template.');
+                return;
+            }
+            
+            if (!formName) {
+                alert('Please enter a form name.');
+                return;
+            }
+            
+            if (!currentFileId) {
+                alert('Please upload a PDF file.');
+                return;
+            }
+
+            const fillButton = document.getElementById('fillFormButton');
+            fillButton.disabled = true;
+            fillButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Filling Form...';
+
+            // Collect field values
+            const fieldValues = [];
+            document.querySelectorAll('#fieldValuesList input[type="checkbox"]').forEach(checkbox => {
+                fieldValues.push({
+                    field_id: checkbox.getAttribute('data-field-id'),
+                    value: checkbox.checked
+                });
+            });
+
+            // Fill the form
+            fetch('/api/forms/fill', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    template_id: templateId,
+                    pdf_file_id: currentFileId,
+                    name: formName,
+                    field_values: fieldValues
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Close modal and reload forms
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createFormModal'));
+                modal.hide();
+                
+                // Reset form
+                document.getElementById('createFormForm').reset();
+                document.getElementById('fieldValuesSection').classList.add('d-none');
+                document.getElementById('uploadProgress').classList.add('d-none');
+                fillButton.classList.add('d-none');
+                document.getElementById('uploadPdfButton').classList.remove('d-none');
+                document.getElementById('uploadPdfButton').disabled = false;
+                fillButton.innerHTML = 'Fill Form';
+                
+                // Reload forms
+                loadForms();
+                
+                // Show success message
+                alert('Form filled successfully!');
+            })
+            .catch(error => {
+                console.error('Error filling form:', error);
+                alert('Error: ' + error.message);
+                fillButton.disabled = false;
+                fillButton.innerHTML = 'Fill Form';
+            });
+        }
+
+        // Download form
+        function downloadForm(formId) {
+            window.location.href = `/api/forms/${formId}/download`;
+        }
+
+        // Show export modal
+        function showExportModal(formId) {
+            currentFormId = formId;
+            const modal = new bootstrap.Modal(document.getElementById('exportModal'));
+            modal.show();
+        }
+
+        // Export form
+        function exportForm() {
+            if (!currentFormId) {
+                alert('No form selected for export.');
+                return;
+            }
+
+            const destination = document.getElementById('exportDestination').value;
+            if (!destination) {
+                alert('Please select an export destination.');
+                return;
+            }
+
+            let exportDestination = destination;
+            if (destination === 'other') {
+                exportDestination = document.getElementById('otherDestination').value;
+                if (!exportDestination) {
+                    alert('Please specify the export destination.');
+                    return;
+                }
+            }
+
+            const exportButton = document.getElementById('confirmExportButton');
+            exportButton.disabled = true;
+            exportButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Exporting...';
+
+            // Determine the API endpoint based on the destination
+            let apiEndpoint = '/api/export/generic';
+            if (destination === 'onespan') {
+                apiEndpoint = '/api/export/onespan';
+            } else if (destination === 'docusign') {
+                apiEndpoint = '/api/export/docusign';
+            }
+
+            // Export the form
+            fetch(apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    form_id: currentFormId,
+                    destination: exportDestination
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+                modal.hide();
+                
+                // Reset form
+                document.getElementById('exportForm').reset();
+                document.getElementById('otherDestinationSection').classList.add('d-none');
+                exportButton.disabled = false;
+                exportButton.innerHTML = 'Export';
+                
+                // Reload forms
+                loadForms();
+                
+                // Show success message
+                alert('Form exported successfully!');
+            })
+            .catch(error => {
+                console.error('Error exporting form:', error);
+                alert('Error: ' + error.message);
+                exportButton.disabled = false;
+                exportButton.innerHTML = 'Export';
+            });
+        }
+    </script>
+</body>
+</html>
