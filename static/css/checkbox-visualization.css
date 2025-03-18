@@ -1,0 +1,189 @@
+/* Checkbox Visualization Styles */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.sidebar {
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+}
+
+.main-content {
+    padding: 20px;
+}
+
+/* Metric cards in the summary dashboard */
+.summary-dashboard {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.metric-card {
+    background-color: white;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-label {
+    font-weight: 500;
+    color: #555;
+}
+
+.metric-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Confidence level colors */
+.high-confidence {
+    color: #198754; /* green */
+}
+
+.medium-confidence {
+    color: #fd7e14; /* orange */
+}
+
+.low-confidence {
+    color: #dc3545; /* red */
+}
+
+/* Document display styling */
+.document-view-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.document-display {
+    max-height: 800px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    position: relative;
+}
+
+/* Checkbox overlay styles */
+.checkbox-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.checkbox-marker {
+    position: absolute;
+    border: 2px solid;
+    pointer-events: all;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.checkbox-marker:hover {
+    transform: scale(1.05);
+    z-index: 100;
+}
+
+.checkbox-marker.high-confidence {
+    border-color: #198754;
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.checkbox-marker.medium-confidence {
+    border-color: #fd7e14;
+    background-color: rgba(253, 126, 20, 0.1);
+}
+
+.checkbox-marker.low-confidence {
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.checkbox-marker.manually-corrected {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Checkbox list table */
+.checkbox-list-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.checkbox-table {
+    margin-top: 15px;
+}
+
+.checkbox-table .checkbox-row {
+    cursor: pointer;
+}
+
+.checkbox-table .checkbox-row:hover {
+    background-color: #f8f9fa;
+}
+
+.checkbox-table .confidence-cell {
+    font-weight: 600;
+}
+
+.checkbox-table .actions-cell {
+    white-space: nowrap;
+}
+
+/* Edit modal styles */
+#editCheckboxModal .modal-content {
+    border-radius: 8px;
+}
+
+/* State indicator in the table */
+.state-indicator {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #6c757d;
+    border-radius: 3px;
+    position: relative;
+}
+
+.state-indicator.checked::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        height: auto;
+        position: relative;
+    }
+    
+    .document-display {
+        max-height: 500px;
+    }
+} 

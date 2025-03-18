@@ -48,6 +48,15 @@ The application serves static files (including visualizations and UI assets) thr
 
 See the [Static File Configuration](docs/static_file_configuration.md) documentation for more details.
 
+### Field Visualization
+
+The application provides comprehensive visualization capabilities for form fields, allowing users to:
+- View field positions on PDF pages
+- Highlight detected checkboxes
+- See field properties and relationships
+
+For detailed information, see the [Field Visualization](docs/field_visualization.md) documentation.
+
 ### Web Interface
 
 Flask-based web application with routes defined in `app.py`.
@@ -83,6 +92,23 @@ For static file handling tests:
 ```
 python -m unittest src/test_static_file_handling.py
 ```
+
+## Utility Tools
+
+The `tools/` directory contains utility scripts for development and testing:
+
+- `generate_test_pdf.py` - Generates test PDF files based on templates
+- `setup_visualization.sh` - Sets up the visualization environment
+- `debug_template_check.py` - Validates templates for potential issues
+
+## Documentation
+
+- [API Documentation](docs/api_documentation.md)
+- [Architecture Design](docs/architecture_design.md)
+- [Field Visualization](docs/field_visualization.md)
+- [Static File Configuration](docs/static_file_configuration.md)
+- [Technical Documentation](docs/technical_documentation.md)
+- [User Guide](docs/user_guide.md)
 
 ## License
 

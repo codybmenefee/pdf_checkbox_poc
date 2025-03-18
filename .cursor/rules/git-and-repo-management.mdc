@@ -1,0 +1,44 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Git & Repository Management Rules
+
+These rules ensure every project is properly version-controlled and documented.
+
+## Every Project Must Have a GitHub Repository
+- At the start of a task, check if the project already has a Git repository.
+- If a repository exists, store its details in a **predictable location** for reference.
+- If no repository exists, create a **new public repository** in GitHub.
+
+## Commit Often with Detailed Notes
+- Make small, incremental commits to track progress.
+- Use **descriptive commit messages** that clearly explain what was changed and why.
+- Follow this commit message structure:  
+  - **Feature Addition:** `feat: Added [feature name] to [module]`  
+  - **Bug Fix:** `fix: Resolved [issue description] in [file]`  
+  - **Refactoring:** `refactor: Improved [code/module] structure for better maintainability`  
+
+## Store Repository Details Consistently
+- Ensure all repository metadata (such as remote URL, branch structure, and commit history) is stored in a **standardized location**.
+- Maintain a local `.git/config` that aligns with the GitHub repository settings.
+
+## Automate Repository Initialization
+- When creating a new repository:
+  - **Initialize Git** if not already set up (`git init`).
+  - **Add a `.gitignore` file** with relevant rules for the project type.
+  - **Push the first commit** with a `README.md` outlining the project.
+  - **Set up branch protections** if applicable.
+
+## Use Branching Best Practices
+- Use **feature branches** for new functionality and bug fixes.
+- Merge changes through **pull requests** rather than direct commits to `main`.
+- Keep branches **up to date** with the latest `main` branch changes before merging.
+
+## Ensure Repository Security
+- Avoid committing **secrets or sensitive data** (e.g., API keys, credentials).
+- Use **environment variables** and `.env` files instead of hardcoding secrets.
+- Add security best practices documentation if the project requires it.
+

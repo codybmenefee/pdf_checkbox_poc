@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+# Manual Rules
+
+These rules should be manually enabled when needed.
+
+## Refactor for Scalability
+- Only refactor large portions of code when explicitly requested.
+
+## Document Design Decisions
+- Provide architecture explanations when requested, but avoid excessive documentation.
+
+## Optimize Performance
+- Apply performance improvements only when specifically asked.
+
+## Expand Functionality
+- If a task requires extending features beyond the given request, confirm before proceeding.
+

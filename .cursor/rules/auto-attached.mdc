@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+# Auto Attached Rules
+
+These rules should be automatically applied based on context (e.g., project type, programming language).
+
+## Ensure Code is Testable
+- Provide suggested validation steps and testing recommendations.
+
+## Optimize for Maintainability
+- Write code that is structured, readable, and easy to modify in the future.
+
+## Avoid Making Files Too Large
+- If a file exceeds **300 lines**, consider breaking it into smaller modules.

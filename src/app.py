@@ -12,6 +12,7 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import argparse
 import traceback
+import shutil
 
 # Configure logging first
 logging.basicConfig(level=logging.DEBUG)
@@ -68,6 +69,45 @@ visualizations_dir = os.path.join(static_folder, "visualizations")
 images_dir = os.path.join(static_folder, "images")
 os.makedirs(visualizations_dir, exist_ok=True)
 os.makedirs(images_dir, exist_ok=True)
+
+# Log static folder configuration for debugging
+logger.info(f"Using static folder at: {static_folder}")
+logger.info(f"Static URL path: {app.static_url_path}")
+
+# Function to ensure static files from src/static are copied to app.static_folder
+def sync_static_folders():
+    """Sync files from src/static to the app's configured static folder."""
+    src_static = os.path.join(os.path.dirname(__file__), 'static')
+    
+    if os.path.exists(src_static) and os.path.isdir(src_static):
+        logger.info(f"Syncing static files from {src_static} to {static_folder}")
+        
+        # Walk through src/static directory and copy files to app.static_folder
+        for root, dirs, files in os.walk(src_static):
+            # Get relative path from src/static
+            rel_path = os.path.relpath(root, src_static)
+            if rel_path == '.':
+                rel_path = ''
+                
+            # Create corresponding directory in app.static_folder if it doesn't exist
+            target_dir = os.path.join(static_folder, rel_path)
+            os.makedirs(target_dir, exist_ok=True)
+            
+            # Copy each file if it doesn't exist or is newer in src/static
+            for file in files:
+                src_file = os.path.join(root, file)
+                target_file = os.path.join(target_dir, file)
+                
+                # Copy file if it doesn't exist in target or if source is newer
+                if not os.path.exists(target_file) or os.path.getmtime(src_file) > os.path.getmtime(target_file):
+                    logger.debug(f"Copying {src_file} to {target_file}")
+                    try:
+                        shutil.copy2(src_file, target_file)
+                    except Exception as e:
+                        logger.error(f"Error copying {src_file} to {target_file}: {str(e)}")
+
+# Sync static folders on startup
+sync_static_folders()
 
 # Check for placeholder images and create if needed
 error_placeholder = os.path.join(images_dir, "error-placeholder.png")
@@ -599,6 +639,7 @@ def serve_static_visualization(visualization_id, filename):
     potential_paths = [
         os.path.join(app.static_folder, 'visualizations', visualization_id),
         os.path.join(os.getcwd(), 'static', 'visualizations', visualization_id),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'visualizations', visualization_id),
         os.path.join(PROCESSED_FOLDER, 'visualizations', visualization_id),
         os.path.join(UPLOAD_FOLDER, visualization_id)
     ]
@@ -606,6 +647,7 @@ def serve_static_visualization(visualization_id, filename):
     # Try each potential path
     for path in potential_paths:
         file_path = os.path.join(path, filename)
+        logger.debug(f"Checking path: {file_path}")
         if os.path.exists(file_path) and os.path.isfile(file_path):
             logger.debug(f"Found visualization file at: {file_path}")
             return send_file(file_path)
@@ -625,27 +667,19 @@ def serve_visualization(visualization_id, filename):
     logger.debug(f"Serving visualization via API: {visualization_id}/{filename}")
     logger.debug(f"Current app.static_folder: {app.static_folder}")
     
-    # Primary path - check directly in app.static_folder/visualizations
-    vis_path = os.path.join(app.static_folder, "visualizations", visualization_id)
-    file_path = os.path.join(vis_path, filename)
-    logger.debug(f"Checking primary path: {file_path}")
-    
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        logger.debug(f"Found visualization file at: {file_path}")
-        return send_file(file_path)
-    
-    # Define fallback locations in order of preference
-    fallback_paths = [
-        os.path.join(PROCESSED_FOLDER, "visualizations", visualization_id, filename),
+    # Define all possible paths in order of preference
+    potential_paths = [
+        os.path.join(app.static_folder, "visualizations", visualization_id, filename),
         os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "visualizations", visualization_id, filename),
-        os.path.join(os.getcwd(), "static", "visualizations", visualization_id, filename)
+        os.path.join(os.getcwd(), "static", "visualizations", visualization_id, filename),
+        os.path.join(PROCESSED_FOLDER, "visualizations", visualization_id, filename)
     ]
     
-    # Try each fallback path
-    for path in fallback_paths:
-        logger.debug(f"Checking fallback path: {path}")
+    # Try each potential path
+    for path in potential_paths:
+        logger.debug(f"Checking path: {path}")
         if os.path.exists(path) and os.path.isfile(path):
-            logger.debug(f"Found visualization file at fallback path: {path}")
+            logger.debug(f"Found visualization file at: {path}")
             return send_file(path)
     
     logger.warning(f"API visualization file not found: {visualization_id}/{filename}")
@@ -1008,6 +1042,8 @@ def serve_static(filename):
     potential_paths = [
         app.static_folder,
         os.path.join(os.getcwd(), 'static'),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static'),
+        os.path.join(os.path.dirname(__file__), 'static')
     ]
     
     # Try each path
