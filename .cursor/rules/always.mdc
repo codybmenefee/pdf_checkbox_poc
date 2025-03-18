@@ -3,56 +3,27 @@ description:
 globs: 
 alwaysApply: true
 ---
-
-# Your rule content
-
 # Always Rules
 
 These rules apply to every task, no exceptions.
 
 ## Stay Focused on the Task
-- Only work on the specific task at hand; do not go out of scope.
+- Work **only** on the specific task at hand; do not go out of scope.
 
 ## Preserve Established Patterns
-- Do not modify workflows or patterns unless there is no other option.
+- Do not modify workflows, structures, or conventions unless absolutely necessary.
 
 ## Avoid Duplication
-- Always check for existing functions before writing new ones.
+- Before writing new code, check for existing functions that accomplish the same goal.
+- Identify and clean up redundant or duplicate code.
 
 ## Enforce Code Cleanliness
-- Identify and clean up duplicate or redundant code.
+- Refactor bloated files and avoid functions longer than **300 lines**.
+- Ensure modularity for maintainability.
 
-## Limit File Length
-- Keep files under **300 lines** when possible; refactor if they exceed this threshold.
+## Commit & Document Work Often
+- Make **incremental commits** with clear, structured commit messages.
+- Keep local files organized to track project progress.
 
 ## Keep Solutions Simple
-- Avoid over-engineering; prioritize clarity and maintainability.
-
-# Testing Rules
-
-These rules apply to all tasks to ensure completeness and reliability.
-
-## Think Through Test Cases Before Starting
-- Define thorough **unit tests** and **end-to-end tests** before implementation.
-- Consider edge cases, failure scenarios, and performance under load.
-
-## Execute Tests to Prove Work is Complete
-- Run all relevant tests before marking a task as done.
-- Ensure new code does not introduce regressions or break existing functionality.
-
-## Unit Testing Best Practices
-- Write unit tests that cover core logic and handle edge cases.
-- Use appropriate testing frameworks:
-  - **Flask/Python:** `pytest`
-  - **LWC:** Jest
-  - **React Native:** React Testing Library + Jest
-- Mock dependencies where necessary to isolate logic.
-
-## End-to-End Testing Guidelines
-- Test full workflows to validate real-world use cases.
-- Automate tests where possible using tools like Selenium, Cypress, or Playwright.
-
-## Maintain Test Coverage and Quality
-- Aim for high test coverage but prioritize meaningful tests over sheer quantity.
-- If a bug is found, add a test case to prevent regressions in the future.
-
+- Avoid over-engineering; prioritize clarity and efficiency.

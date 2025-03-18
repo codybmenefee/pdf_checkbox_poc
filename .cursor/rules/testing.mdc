@@ -1,0 +1,31 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Testing Rules
+
+These rules ensure every task is validated with proper testing.
+
+## Plan Testing Before Development
+- Define **unit tests** and **end-to-end tests** before coding.
+- Identify edge cases, failure scenarios, and performance limits.
+
+## Execute Tests to Prove Work is Complete
+- Run all relevant tests before submitting a task.
+- Ensure no regressions or breakages.
+
+## Unit Testing Best Practices
+- Cover core logic and edge cases.
+- Use the right frameworks:
+  - **Flask/Python:** `pytest`
+  - **LWC:** Jest
+  - **React Native:** React Testing Library + Jest
+
+## End-to-End Testing Guidelines
+- Test complete workflows for real-world validation.
+- Automate tests using **Selenium, Cypress, or Playwright**.
+
+## Maintain Test Quality
+- Prioritize meaningful test cases over sheer quantity.
+- Add new test cases for any discovered bugs.

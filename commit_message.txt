@@ -1,0 +1,11 @@
+chore: reorganize project structure
+
+- Move Python scripts to tools/ directory
+- Move shell scripts to scripts/ directory
+- Move documentation files to docs/ directory
+- Move GitHub templates to .github/ directory
+- Create logs/ directory for log files
+- Update README.md to reflect new organization
+- Update scripts to reference correct file paths
+
+This change improves project organization and maintainability while reducing clutter in the root directory.

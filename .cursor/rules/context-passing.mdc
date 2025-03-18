@@ -1,0 +1,20 @@
+---
+description: 
+globs: *.md, context/*.json
+alwaysApply: false
+---
+# Context Passing Rules
+
+Ensures smooth transitions between agents due to tool limitations.
+
+## Efficiently Pass Context
+- After **25 tool calls**, wrap up and generate a **handoff prompt**.
+- Store key progress details in an **accessible location**.
+
+## Automate Context Retention
+- Use an **indexing system** to allow agents to search previous work.
+- Prioritize **important decisions** in context notes.
+
+## Standardize Handoff Prompts
+- Clearly state what has been completed and **next steps** for the next agent.
+- Include **relevant files, APIs, or database updates**.

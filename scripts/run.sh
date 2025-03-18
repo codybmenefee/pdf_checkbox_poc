@@ -5,7 +5,7 @@
 
 # Set default values
 PORT=${1:-5004}
-LOG_FILE="server.log"
+LOG_FILE="logs/server.log"
 
 # Set environment variables explicitly
 # In production, these should be set in the environment rather than in this script

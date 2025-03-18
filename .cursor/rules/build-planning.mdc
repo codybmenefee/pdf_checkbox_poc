@@ -1,0 +1,22 @@
+---
+description: 
+globs: docs/*.md, plans/*.json
+alwaysApply: false
+---
+# Build Planning Rules
+
+These rules ensure agents create structured project plans.
+
+## Map Out a Build Plan
+- Before coding, generate a **clear build plan** outlining:
+  - Features to be developed.
+  - Dependencies and integrations.
+  - Expected output.
+
+## Store and Catalog Plans
+- Plans should be **saved locally** and easily accessible by agents.
+- Completed plans should be cataloged for reference.
+
+## Break Plans Into Daily Goals
+- Tasks should be **divided into actionable goals**.
+- Reference previous work to ensure continuity.

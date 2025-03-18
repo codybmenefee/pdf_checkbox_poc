@@ -1,24 +1,19 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-
-# Your rule content
-
 # Manual Rules
 
-These rules should be manually enabled when needed.
+These rules apply when manually activated.
 
-## Refactor for Scalability
-- Only refactor large portions of code when explicitly requested.
+## Refactoring & Optimization
+- Break down large functions into **smaller, reusable modules**.
+- Apply **performance improvements** only when requested.
 
-## Document Design Decisions
-- Provide architecture explanations when requested, but avoid excessive documentation.
+## Deep Code Review & Debugging
+- Conduct **in-depth reviews** beyond automated linting.
+- Debug tricky issues with **additional logging and tracing**.
 
-## Optimize Performance
-- Apply performance improvements only when specifically asked.
-
-## Expand Functionality
-- If a task requires extending features beyond the given request, confirm before proceeding.
-
+## Custom Implementations
+- Write specialized solutions only **when standard approaches won't work**.

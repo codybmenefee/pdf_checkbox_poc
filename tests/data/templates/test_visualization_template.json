@@ -1,0 +1,100 @@
+{
+  "template_id": "test-visualization-template",
+  "name": "Test Visualization Template",
+  "description": "A test template for field visualization",
+  "created_at": "2024-03-18T15:00:00.000Z",
+  "updated_at": "2024-03-18T15:00:00.000Z",
+  "version": "1.0",
+  "tags": ["test", "visualization"],
+  "document": {
+    "file_id": "test-viz-file",
+    "original_filename": "test_visualization_form.pdf",
+    "stored_filename": "test-viz-file_test_visualization_form.pdf"
+  },
+  "fields": [
+    {
+      "field_id": "checkbox1",
+      "name": "Option A",
+      "label": "Option A",
+      "field_type": "checkbox",
+      "page": 1,
+      "default_value": false,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.2,
+        "width": 0.02,
+        "height": 0.02
+      }
+    },
+    {
+      "field_id": "checkbox2",
+      "name": "Option B",
+      "label": "Option B",
+      "field_type": "checkbox",
+      "page": 1,
+      "default_value": true,
+      "bbox": {
+        "left": 0.15,
+        "top": 0.25,
+        "width": 0.02,
+        "height": 0.02
+      }
+    },
+    {
+      "field_id": "text1",
+      "name": "Full Name",
+      "label": "Full Name",
+      "field_type": "text",
+      "page": 1,
+      "default_value": "",
+      "bbox": {
+        "left": 0.15,
+        "top": 0.35,
+        "width": 0.4,
+        "height": 0.03
+      }
+    },
+    {
+      "field_id": "text2",
+      "name": "Email Address",
+      "label": "Email Address",
+      "field_type": "text",
+      "page": 1,
+      "default_value": "",
+      "bbox": {
+        "left": 0.15,
+        "top": 0.45,
+        "width": 0.4,
+        "height": 0.03
+      }
+    },
+    {
+      "field_id": "date1",
+      "name": "Date",
+      "label": "Date",
+      "field_type": "date",
+      "page": 1,
+      "default_value": "",
+      "bbox": {
+        "left": 0.15,
+        "top": 0.55,
+        "width": 0.2,
+        "height": 0.03
+      }
+    },
+    {
+      "field_id": "signature",
+      "name": "Signature",
+      "label": "Signature",
+      "field_type": "signature",
+      "page": 1,
+      "default_value": "",
+      "bbox": {
+        "left": 0.15,
+        "top": 0.65,
+        "width": 0.4,
+        "height": 0.1
+      }
+    }
+  ]
+} 

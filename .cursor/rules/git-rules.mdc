@@ -1,0 +1,25 @@
+---
+description: 
+globs: *.sh, *.gitignore, .cursor/config.json
+alwaysApply: false
+---
+# Git & Repository Management Rules
+
+## Every Project Must Have a GitHub Repository
+- If no repository exists, create a **new public GitHub repo**.
+- Store repository details in a **standardized location** for reference.
+
+## Commit Often with Detailed Notes
+- Use structured commit messages:
+  - **Feature Addition:** `feat: Added [feature]`
+  - **Bug Fix:** `fix: Resolved [issue]`
+  - **Refactor:** `refactor: Improved [module]`
+
+## Automate Repository Setup
+- Initialize Git (`git init`) if needed.
+- Add a **`.gitignore`** file.
+- Push an initial commit with a **`README.md`**.
+
+## Branching Best Practices
+- Use **feature branches** for new work.
+- Merge via **pull requests** (PRs), not direct commits.

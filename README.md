@@ -73,19 +73,20 @@ Flask-based web application with routes defined in `app.py`.
 5. Set up a Google Cloud project with Document AI enabled
 6. Run the application:
    ```
-   ./run.sh
+   ./scripts/run.sh
    ```
 
 ## Testing
 
-Run tests using:
+Run all tests using:
 ```
-python src/run_tests.py
+python tests/run_all_tests.py
 ```
 
-For visualization-specific tests:
+For specific test categories:
 ```
-python src/run_visualization_tests.py
+python tests/run_tests.py            # Core functionality tests
+python tests/run_visualization_tests.py  # Visualization tests
 ```
 
 For static file handling tests:
@@ -98,8 +99,25 @@ python -m unittest src/test_static_file_handling.py
 The `tools/` directory contains utility scripts for development and testing:
 
 - `generate_test_pdf.py` - Generates test PDF files based on templates
-- `setup_visualization.sh` - Sets up the visualization environment
+- `generate_placeholders.py` - Generates placeholder elements for testing
 - `debug_template_check.py` - Validates templates for potential issues
+
+The `scripts/` directory contains shell scripts for various operations:
+
+- `run.sh` - Main script to run the application
+- `run_field_test.sh` - Script to run field detection tests
+- `setup_visualization.sh` - Sets up the visualization environment
+
+## Project Organization
+
+- `src/` - Source code for the application
+- `tools/` - Python utility scripts for development and testing
+- `scripts/` - Shell scripts for running the application and tests
+- `docs/` - Project documentation and references
+- `tests/` - Test suite and test cases
+- `data/` - Data files and sample PDFs
+- `logs/` - Log files produced by the application
+- `.github/` - GitHub-specific files like PR templates
 
 ## Documentation
 

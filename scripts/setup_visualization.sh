@@ -19,12 +19,12 @@ echo ""
 
 # Generate placeholder images
 echo "Generating placeholder images..."
-python3 generate_placeholders.py
+python3 tools/generate_placeholders.py
 echo ""
 
 # Generate test PDF
 echo "Generating test PDF..."
-python3 generate_test_pdf.py
+python3 tools/generate_test_pdf.py
 echo ""
 
 # Run test script
@@ -37,5 +37,5 @@ echo ""
 echo "You can now access the visualization feature at:"
 echo "http://localhost:5000/ui/template-advanced-visualization/test-visualization-template"
 echo ""
-echo "Make sure your server is running with: ./run.sh"
+echo "Make sure your server is running with: ./scripts/run.sh"
 echo "" 

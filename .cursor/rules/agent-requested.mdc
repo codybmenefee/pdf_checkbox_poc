@@ -1,23 +1,20 @@
 ---
-description: 
+description: Use when a task requires alternative approaches, deep optimizations, or refactoring guidance.
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-
-# Your rule content
-
 # Agent Requested Rules
 
-These rules are applied only when explicitly requested by the agent.
+These rules apply only when explicitly requested.
 
 ## Suggest Alternative Approaches
-- When relevant, explain different ways to solve the problem with trade-offs.
+- Provide multiple ways to solve a problem, with trade-offs.
 
 ## Optimize for Learning
-- Provide concise explanations where necessary to improve understanding.
+- Explain technical decisions in **clear, concise terms**.
 
-## Identify Potential Code Improvements
-- If reviewing existing code, flag areas for improvement without making assumptions.
+## Review & Improve Existing Code
+- Identify areas for **refactoring** or **improvement** without assuming changes are needed.
 
 ## Provide a First Draft Before Finalizing
-- For complex tasks, generate an initial version and allow for review before completion.
+- For complex work, generate a **draft version** before completing the full implementation.
