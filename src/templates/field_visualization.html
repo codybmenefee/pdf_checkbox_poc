@@ -46,6 +46,10 @@
                             <input class="form-check-input" type="checkbox" id="toggleFieldLabels" checked>
                             <label class="form-check-label" for="toggleFieldLabels">Show Field Labels</label>
                         </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="toggleDebugMode">
+                            <label class="form-check-label" for="toggleDebugMode">Debug Mode</label>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Filter by Field Type</label>
                             <div id="fieldTypeFilters">
@@ -103,6 +107,16 @@
                             <div><span class="shortcut-key">Ctrl+S</span> Save Changes</div>
                         </div>
                     </div>
+                    
+                    <!-- Debug Area (only visible in debug mode) -->
+                    <div id="debugArea" class="mb-4" style="display: none;">
+                        <h4>Debug Information</h4>
+                        <div class="position-info mb-2">
+                            <small>Cursor: <span id="cursorPos">0,0</span></small><br>
+                            <small>Image: <span id="imageSize">0x0</span></small>
+                        </div>
+                        <!-- Field debug entries will be added here dynamically -->
+                    </div>
                 </div>
             </div>
 
@@ -121,6 +135,9 @@
                         <div id="documentContainer" class="position-relative">
                             <img id="documentImage" class="w-100" src="" alt="Document page">
                             <div id="fieldOverlay" class="field-overlay"></div>
+                            <div id="debugOverlay" class="debug-overlay" style="display: none;">
+                                Cursor: <span id="docCursorPos">0,0</span>
+                            </div>
                         </div>
                     </div>
                 </div>

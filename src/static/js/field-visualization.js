@@ -39,6 +39,18 @@ const CONFIG = {
         
         // Saving
         's': 'save'
+    },
+    metrics: {
+        enabled: true,           // Enable/disable metrics collection
+        logToConsole: true,      // Log metrics to console
+        sendToServer: true       // Send metrics to server
+    },
+    fieldVisuals: {
+        activeClass: 'active-drag',
+        resizeClass: 'active-resize',
+        selectedClass: 'selected',
+        overlapWarningClass: 'overlap-warning',
+        animateChanges: true     // Enable animations for field changes
     }
 };
 
@@ -62,8 +74,41 @@ let state = {
     isModified: false,            // Track if any fields have been modified
     selectedFields: new Set(),    // Set of selected field IDs
     isMultiSelect: false,         // Flag for multi-selection (Shift key)
+    isRectangleSelect: false,     // Flag for rectangle selection mode (Ctrl key)
+    rectangleSelect: {            // State for rectangle selection
+        startX: 0,
+        startY: 0,
+        endX: 0,
+        endY: 0,
+        active: false
+    },
     currentZoomLevel: CONFIG.defaultZoomLevel, // Current zoom level index
-    zoomFactor: CONFIG.zoomLevels[CONFIG.defaultZoomLevel] // Current zoom factor
+    zoomFactor: CONFIG.zoomLevels[CONFIG.defaultZoomLevel], // Current zoom factor
+    preloadedImages: new Map(),   // Cache for preloaded images
+    preloadInProgress: false,     // Flag to track ongoing preloads
+    batchOperationActive: false,  // Flag for batch operations
+    lastSelectedFieldId: null     // Last selected field for range selection
+};
+
+// Metrics tracking
+const metrics = {
+    sessionId: generateSessionId(),
+    imageLoads: {
+        total: 0,
+        success: 0,
+        failure: 0,
+        fallbackSuccess: 0,
+        timings: []
+    },
+    navigation: {
+        pageChanges: 0,
+        averageLoadTime: 0
+    },
+    errors: [],
+    timestamps: {
+        sessionStart: Date.now(),
+        lastPageChange: 0
+    }
 };
 
 // DOM Elements
@@ -100,16 +145,21 @@ const elements = {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
-    // Get document ID from URL
+    // Get document ID or form ID from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const documentId = urlParams.get('id') || window.location.pathname.split('/').pop();
+    const documentId = urlParams.get('id');
+    const formId = urlParams.get('form_id');
     
     if (documentId) {
         state.documentId = documentId;
         await loadDocumentData(documentId);
         setupEventListeners();
+    } else if (formId) {
+        state.documentId = formId; // Store the form ID as the document ID
+        await loadFormData(formId);
+        setupEventListeners();
     } else {
-        showError('No document ID provided');
+        showError('No document ID or form ID provided');
     }
 });
 
@@ -130,21 +180,64 @@ function setupEventListeners() {
         renderFieldOverlay();
     });
     
-    // Add debug mode toggle to UI
-    const debugToggle = document.createElement('div');
-    debugToggle.className = 'form-check form-switch mb-2';
-    debugToggle.innerHTML = `
-        <input class="form-check-input" type="checkbox" id="toggleDebugMode">
-        <label class="form-check-label" for="toggleDebugMode">Debug Mode</label>
-    `;
-    elements.fieldTypeFilters.parentNode.insertBefore(debugToggle, elements.fieldTypeFilters);
-    
     // Debug mode toggle
     const toggleDebugMode = document.getElementById('toggleDebugMode');
-    toggleDebugMode.addEventListener('change', () => {
-        state.showDebug = toggleDebugMode.checked;
-        CONFIG.debugMode = toggleDebugMode.checked;
-        renderFieldOverlay();
+    if (toggleDebugMode) {
+        toggleDebugMode.addEventListener('change', () => {
+            state.showDebug = toggleDebugMode.checked;
+            CONFIG.debugMode = toggleDebugMode.checked;
+            
+            // Toggle debug areas
+            const debugArea = document.getElementById('debugArea');
+            const debugOverlay = document.getElementById('debugOverlay');
+            
+            if (debugArea) {
+                debugArea.style.display = state.showDebug ? 'block' : 'none';
+            }
+            
+            if (debugOverlay) {
+                debugOverlay.style.display = state.showDebug ? 'block' : 'none';
+            }
+            
+            renderFieldOverlay();
+        });
+    }
+    
+    // Mouse position tracking on document image
+    elements.documentImage.addEventListener('mousemove', (e) => {
+        if (!state.showDebug) return;
+        
+        const rect = elements.documentImage.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
+            // Get both pixel and normalized coordinates
+            const normalizedX = (x / rect.width).toFixed(3);
+            const normalizedY = (y / rect.height).toFixed(3);
+            
+            // Update cursor position displays
+            const cursorPos = document.getElementById('cursorPos');
+            const docCursorPos = document.getElementById('docCursorPos');
+            
+            if (cursorPos) {
+                cursorPos.textContent = `${Math.round(x)},${Math.round(y)} (${normalizedX},${normalizedY})`;
+            }
+            
+            if (docCursorPos) {
+                docCursorPos.textContent = `${Math.round(x)},${Math.round(y)} (${normalizedX},${normalizedY})`;
+            }
+        }
+    });
+    
+    // Update image dimensions on load
+    elements.documentImage.addEventListener('load', () => {
+        if (state.showDebug) {
+            const imageSize = document.getElementById('imageSize');
+            if (imageSize) {
+                imageSize.textContent = `${elements.documentImage.width}x${elements.documentImage.height}`;
+            }
+        }
     });
     
     // Export button
@@ -183,6 +276,84 @@ function setupEventListeners() {
     elements.documentContainer.addEventListener('mousemove', handleMouseMove);
     elements.documentContainer.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mouseup', handleMouseUp); // Catch mouseup outside the document
+    
+    // Rectangle selection
+    elements.documentContainer.addEventListener('mousedown', handleDocumentMouseDown);
+    elements.documentContainer.addEventListener('mousemove', handleDocumentMouseMove);
+    elements.documentContainer.addEventListener('mouseup', handleDocumentMouseUp);
+    
+    // Batch operation buttons 
+    const batchAlignLeftBtn = document.getElementById('batchAlignLeft');
+    if (batchAlignLeftBtn) {
+        batchAlignLeftBtn.addEventListener('click', () => batchAlign('left'));
+    }
+    
+    const batchAlignRightBtn = document.getElementById('batchAlignRight');
+    if (batchAlignRightBtn) {
+        batchAlignRightBtn.addEventListener('click', () => batchAlign('right'));
+    }
+    
+    const batchAlignTopBtn = document.getElementById('batchAlignTop');
+    if (batchAlignTopBtn) {
+        batchAlignTopBtn.addEventListener('click', () => batchAlign('top'));
+    }
+    
+    const batchAlignBottomBtn = document.getElementById('batchAlignBottom');
+    if (batchAlignBottomBtn) {
+        batchAlignBottomBtn.addEventListener('click', () => batchAlign('bottom'));
+    }
+    
+    const batchDistributeHorizontalBtn = document.getElementById('batchDistributeHorizontal');
+    if (batchDistributeHorizontalBtn) {
+        batchDistributeHorizontalBtn.addEventListener('click', () => batchDistribute('horizontal'));
+    }
+    
+    const batchDistributeVerticalBtn = document.getElementById('batchDistributeVertical');
+    if (batchDistributeVerticalBtn) {
+        batchDistributeVerticalBtn.addEventListener('click', () => batchDistribute('vertical'));
+    }
+    
+    const batchSameWidthBtn = document.getElementById('batchSameWidth');
+    if (batchSameWidthBtn) {
+        batchSameWidthBtn.addEventListener('click', () => batchSetSameSize('width'));
+    }
+    
+    const batchSameHeightBtn = document.getElementById('batchSameHeight');
+    if (batchSameHeightBtn) {
+        batchSameHeightBtn.addEventListener('click', () => batchSetSameSize('height'));
+    }
+
+    // Add Ctrl key handling for rectangle selection
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Control') {
+            state.isRectangleSelect = true;
+            
+            // Add visual indicator that rectangle select mode is active
+            const docContainer = elements.documentContainer;
+            if (docContainer) {
+                docContainer.classList.add('rectangle-select-mode');
+            }
+        }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'Control') {
+            state.isRectangleSelect = false;
+            state.rectangleSelect.active = false;
+            
+            // Remove visual indicator
+            const docContainer = elements.documentContainer;
+            if (docContainer) {
+                docContainer.classList.remove('rectangle-select-mode');
+            }
+            
+            // Remove selection rectangle
+            const selectionRect = document.getElementById('selectionRectangle');
+            if (selectionRect) {
+                selectionRect.remove();
+            }
+        }
+    });
     
     // Load first page image
     if (state.pageData.length > 0) {
@@ -247,6 +418,56 @@ async function loadDocumentData(documentId) {
     }
 }
 
+// Load form field data
+async function loadFormData(formId) {
+    try {
+        console.log("Form ID being requested:", formId);
+        console.log(`Loading form data for ID: ${formId}`);
+        const response = await fetch(`/api/field-visualization/form/${formId}`);
+        
+        if (!response.ok) {
+            console.error(`Server responded with status: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to load form data: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Full form data received:", data);
+        
+        // Process the data (same as document data but with form-specific fields)
+        if (!data.fields || data.fields.length === 0) {
+            console.error("No fields found in the form data");
+            showError('No fields found in the document');
+            return;
+        }
+        
+        // Check if fields are being processed
+        console.log("Field count:", data.fields ? data.fields.length : 0);
+        
+        // Update state with document data
+        state.documentName = data.document_name || 'Form PDF';
+        state.processingDate = data.processing_date || new Date().toISOString();
+        state.totalPages = data.total_pages || 1;
+        state.pageData = data.pages || [];
+        state.allFields = data.fields || [];
+        
+        // Update UI with document info
+        updateDocumentInfo();
+        
+        // Initialize field type filters
+        initFieldTypeFilters();
+        
+        // Set navigation button states
+        updatePageNavigation();
+        
+        // Load first page
+        navigateToPage(1);
+        
+    } catch (error) {
+        console.error('Error loading form data:', error);
+        showError(`Failed to load form data: ${error.message}`);
+    }
+}
+
 // Create field type filter checkboxes
 function createFieldTypeFilters(fieldTypes) {
     elements.fieldTypeFilters.innerHTML = '';
@@ -291,6 +512,9 @@ function createFieldTypeFilters(fieldTypes) {
 function navigateToPage(pageNumber) {
     if (pageNumber < 1 || pageNumber > state.totalPages) return;
     
+    // Track the page navigation
+    const previousPage = state.currentPage;
+    
     console.log(`Navigating to page ${pageNumber} of ${state.totalPages}`);
     state.currentPage = pageNumber;
     
@@ -300,16 +524,209 @@ function navigateToPage(pageNumber) {
     elements.pageInfo.textContent = `Page ${pageNumber} of ${state.totalPages}`;
     
     // Get page data
-    const page = state.pageData[pageNumber - 1];
-    console.log("Page data:", page);
+    const pageData = state.pageData.find(p => p.page_number === pageNumber);
     
-    // Load page image
-    elements.documentImage.src = page.image_url;
-    console.log("Loading image from:", page.image_url);
-    elements.documentImage.onload = () => {
-        console.log(`Image loaded with dimensions: ${elements.documentImage.width}x${elements.documentImage.height}`);
-        updateCurrentPageFields();
+    if (!pageData) {
+        console.error(`Page data not found for page ${pageNumber}`);
+        return;
+    }
+    
+    // Track page navigation metrics
+    trackPageNavigation(previousPage, pageNumber);
+    
+    // Load the image (fast if preloaded)
+    loadPageImage(pageData);
+    
+    // Update fields display
+    updateCurrentPageFields();
+    
+    // Preload adjacent pages
+    preloadAdjacentPages(pageNumber);
+}
+
+// Load page image
+function loadPageImage(pageData) {
+    console.log(`Loading image for page ${pageData.page_number}`);
+    
+    // Check if we have this image preloaded
+    if (state.preloadedImages.has(pageData.page_number)) {
+        console.log(`Using preloaded image for page ${pageData.page_number}`);
+        
+        // Use the preloaded image
+        const imageUrl = state.preloadedImages.get(pageData.page_number);
+        setDocumentImage(imageUrl, pageData);
+        return;
+    }
+    
+    // Not preloaded, load normally with multiple fallback sources
+    const imageUrl = getImageUrl(pageData.image_url);
+    
+    // Load the image 
+    loadImageWithFallbacks(imageUrl, (successUrl) => {
+        setDocumentImage(successUrl, pageData);
+        state.preloadedImages.set(pageData.page_number, successUrl); // Cache for future
+    });
+}
+
+// Set document image
+function setDocumentImage(imageUrl, pageData) {
+    // Update the image source
+    elements.documentImage.src = imageUrl;
+    
+    // Set the image dimensions
+    elements.documentImage.style.width = `${pageData.width * state.zoomFactor}px`;
+    elements.documentImage.style.height = `${pageData.height * state.zoomFactor}px`;
+    
+    // Update field overlay dimensions
+    elements.fieldOverlay.style.width = `${pageData.width * state.zoomFactor}px`;
+    elements.fieldOverlay.style.height = `${pageData.height * state.zoomFactor}px`;
+    
+    // Render the field overlay
+    renderFieldOverlay();
+}
+
+// Preload adjacent pages
+function preloadAdjacentPages(currentPage) {
+    // Don't preload if already in progress
+    if (state.preloadInProgress) return;
+    
+    state.preloadInProgress = true;
+    console.log("Preloading adjacent pages");
+    
+    // Define which pages to preload
+    const pagesToPreload = [];
+    
+    // Always preload next page if available
+    if (currentPage < state.totalPages) {
+        pagesToPreload.push(currentPage + 1);
+    }
+    
+    // Then preload previous page if available
+    if (currentPage > 1) {
+        pagesToPreload.push(currentPage - 1);
+    }
+    
+    // Preload in sequence
+    preloadNextPageInQueue(pagesToPreload, 0, () => {
+        console.log("Preloading complete");
+        state.preloadInProgress = false;
+    });
+}
+
+// Process the preload queue sequentially
+function preloadNextPageInQueue(pages, index, onComplete) {
+    if (index >= pages.length) {
+        onComplete();
+        return;
+    }
+    
+    const pageNumber = pages[index];
+    
+    // Skip if already preloaded
+    if (state.preloadedImages.has(pageNumber)) {
+        console.log(`Page ${pageNumber} already preloaded, skipping`);
+        preloadNextPageInQueue(pages, index + 1, onComplete);
+        return;
+    }
+    
+    // Get page data
+    const pageData = state.pageData.find(p => p.page_number === pageNumber);
+    if (!pageData) {
+        console.error(`Page data not found for preloading page ${pageNumber}`);
+        preloadNextPageInQueue(pages, index + 1, onComplete);
+        return;
+    }
+    
+    console.log(`Preloading page ${pageNumber}`);
+    
+    // Get the image URL with possible variations
+    const imageUrl = getImageUrl(pageData.image_url);
+    
+    // Attempt to load with fallbacks
+    loadImageWithFallbacks(imageUrl, (successUrl) => {
+        // Cache the successfully loaded URL
+        state.preloadedImages.set(pageNumber, successUrl);
+        console.log(`Successfully preloaded page ${pageNumber}`);
+        
+        // Load the next page in queue
+        preloadNextPageInQueue(pages, index + 1, onComplete);
+    });
+}
+
+// Get possible image URLs with document ID
+function getImageUrl(originalUrl) {
+    // Remove leading slash if present
+    const cleanUrl = originalUrl.startsWith('/') ? originalUrl.substring(1) : originalUrl;
+    
+    // Determine the visualization ID (which could be form ID or document ID)
+    const visId = state.documentId;
+    
+    return `/static/visualizations/${visId}/${cleanUrl}`;
+}
+
+// Load image with multiple fallback sources
+function loadImageWithFallbacks(primaryUrl, onSuccess) {
+    console.log(`Attempting to load image: ${primaryUrl}`);
+    
+    // Metrics - start timing
+    const startTime = Date.now();
+    
+    // Create a test image to try loading
+    const testImg = new Image();
+    
+    // Track if any source succeeded
+    let succeeded = false;
+    let fallbackUsed = false;
+    
+    // List of alternative URL formats to try
+    const altUrls = [
+        primaryUrl,                                           // Primary URL
+        primaryUrl.replace('/static/visualizations/', '/'),   // Direct file
+        primaryUrl.replace('/static/visualizations/', '/api/visualizations/') // API path
+    ];
+    
+    // Try next alternative URL
+    let currentAltIndex = 0;
+    
+    // Set up error handler to try next alternative
+    testImg.onerror = function() {
+        currentAltIndex++;
+        
+        if (currentAltIndex < altUrls.length) {
+            console.log(`Primary image load failed, trying alternative URL: ${altUrls[currentAltIndex]}`);
+            fallbackUsed = true;
+            testImg.src = altUrls[currentAltIndex];
+        } else {
+            console.error("All image loading attempts failed");
+            
+            // Track the failed load
+            trackImageLoad(primaryUrl, startTime, false, fallbackUsed);
+            
+            // Log the error
+            logErrorMetric('image-load', 'All image loading attempts failed', {
+                primaryUrl,
+                altUrls,
+                page: state.currentPage
+            });
+            
+            // Use a placeholder or default image
+            onSuccess('/static/img/page_not_found.png');
+        }
     };
+    
+    // Set up success handler
+    testImg.onload = function() {
+        succeeded = true;
+        console.log(`Successfully loaded image from: ${testImg.src}`);
+        
+        // Track the successful load
+        trackImageLoad(testImg.src, startTime, true, fallbackUsed);
+        
+        onSuccess(testImg.src);
+    };
+    
+    // Start loading first URL
+    testImg.src = altUrls[0];
 }
 
 // Update fields for current page
@@ -527,6 +944,9 @@ function handleFieldMarkerMouseDown(event) {
             }
         };
         
+        // Add visual indicator for active dragging
+        marker.classList.add(CONFIG.fieldVisuals.activeClass);
+        
         // Add event listeners for dragging
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
@@ -557,6 +977,11 @@ function handleFieldSelection(fieldId, event) {
     // Update UI to reflect selection
     renderFieldOverlay();
     highlightSelectedFieldsInTable();
+    
+    // Update debug display if in debug mode
+    if (CONFIG.debugMode) {
+        updateDebugDisplay(fieldId);
+    }
 }
 
 // Highlight selected fields in the table
@@ -595,6 +1020,9 @@ function handleResizeMouseDown(event) {
         fieldIndex: fieldIndex
     };
     
+    // Add visual indicator for active resizing
+    fieldMarker.classList.add(CONFIG.fieldVisuals.resizeClass);
+    
     // Store starting position and dimensions
     state.dragStartPos = {
         x: event.clientX,
@@ -608,6 +1036,11 @@ function handleResizeMouseDown(event) {
     // Add global event listeners for resize
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    
+    // Update debug display if in debug mode
+    if (CONFIG.debugMode) {
+        updateDebugDisplay(fieldId);
+    }
     
     event.preventDefault();
     event.stopPropagation();
@@ -703,15 +1136,20 @@ function handleMouseMove(event) {
 // Handle mouse up to end drag or resize
 function handleMouseUp() {
     if (state.activeDrag || state.resizeHandle) {
+        const element = state.activeDrag 
+            ? state.activeDrag.element 
+            : state.resizeHandle.element;
+            
+        // Remove visual indicators
+        element.classList.remove(CONFIG.fieldVisuals.activeClass);
+        element.classList.remove(CONFIG.fieldVisuals.resizeClass);
+        
         // Get the field being modified
         const fieldIndex = state.activeDrag 
             ? state.activeDrag.fieldIndex 
             : state.resizeHandle.fieldIndex;
         
         const field = state.currentPageFields[fieldIndex];
-        const element = state.activeDrag 
-            ? state.activeDrag.element 
-            : state.resizeHandle.element;
         
         // Get image dimensions for normalization
         const image = elements.documentImage;
@@ -734,6 +1172,9 @@ function handleMouseUp() {
             field.bbox.bottom = field.bbox.top + field.bbox.height;
         }
         
+        // Check for field overlaps after repositioning
+        checkFieldOverlaps(field.id, element);
+        
         // Update state
         if (state.isModified) {
             // Show save changes button
@@ -749,6 +1190,11 @@ function handleMouseUp() {
                 exportControls.insertBefore(saveBtn, elements.exportJsonBtn);
             }
         }
+        
+        // Update debug display if in debug mode
+        if (CONFIG.debugMode) {
+            updateDebugDisplay(field.id);
+        }
     }
     
     // Reset drag/resize state
@@ -758,6 +1204,79 @@ function handleMouseUp() {
     // Remove global event listeners
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+}
+
+// Check if a field overlaps with any other fields
+function checkFieldOverlaps(fieldId, element) {
+    // Skip if element is null
+    if (!element) return false;
+    
+    // Get the current field's rectangle
+    const rect1 = element.getBoundingClientRect();
+    let hasOverlap = false;
+    
+    // Remove any existing overlap warnings
+    document.querySelectorAll(`.${CONFIG.fieldVisuals.overlapWarningClass}`).forEach(el => {
+        el.classList.remove(CONFIG.fieldVisuals.overlapWarningClass);
+    });
+    
+    // Check against all other fields on the current page
+    const otherFields = document.querySelectorAll(`.field-marker:not([data-field-id="${fieldId}"])`);
+    
+    otherFields.forEach(otherField => {
+        const rect2 = otherField.getBoundingClientRect();
+        
+        // Check for rectangle overlap
+        if (!(rect1.right < rect2.left || 
+              rect1.left > rect2.right || 
+              rect1.bottom < rect2.top || 
+              rect1.top > rect2.bottom)) {
+            
+            // Overlap detected
+            hasOverlap = true;
+            
+            // Add warning class to both fields
+            element.classList.add(CONFIG.fieldVisuals.overlapWarningClass);
+            otherField.classList.add(CONFIG.fieldVisuals.overlapWarningClass);
+            
+            // Log warning if debug mode is enabled
+            if (CONFIG.debugMode) {
+                console.log(`Field overlap detected: ${fieldId} with ${otherField.dataset.fieldId}`);
+            }
+        }
+    });
+    
+    return hasOverlap;
+}
+
+// Update debug display with detailed information
+function updateDebugDisplay(fieldId) {
+    if (!CONFIG.debugMode) return;
+    
+    // Make sure debug area is visible
+    const debugInfo = document.getElementById('debugInfo');
+    debugInfo.style.display = 'block';
+    
+    // Update selection info
+    const selectionInfo = document.getElementById('selectionInfo');
+    if (selectionInfo) {
+        if (state.selectedFields.size === 0) {
+            selectionInfo.textContent = "No fields selected";
+        } else {
+            selectionInfo.textContent = `${state.selectedFields.size} field(s) selected: ${Array.from(state.selectedFields).join(', ')}`;
+        }
+    }
+    
+    // Update field details if a field ID is provided
+    if (fieldId) {
+        const field = state.allFields.find(f => f.id === fieldId);
+        if (field) {
+            const selectedFieldDetails = document.getElementById('selectedFieldDetails');
+            if (selectedFieldDetails) {
+                selectedFieldDetails.textContent = JSON.stringify(field, null, 2);
+            }
+        }
+    }
 }
 
 // Save field changes to server
@@ -1136,5 +1655,650 @@ function handleKeyboardShortcut(event) {
                 saveFieldChanges();
             }
             break;
+    }
+}
+
+// Generate a unique session ID
+function generateSessionId() {
+    return 'vis_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+}
+
+// Log a metric event
+function logMetric(category, action, label, value) {
+    if (!CONFIG.metrics.enabled) return;
+    
+    const event = {
+        timestamp: Date.now(),
+        category,
+        action,
+        label,
+        value
+    };
+    
+    // Log to console if enabled
+    if (CONFIG.metrics.logToConsole) {
+        console.log(`METRIC: [${category}] ${action} - ${label}: ${value}`);
+    }
+    
+    // Send to server if enabled
+    if (CONFIG.metrics.sendToServer) {
+        // Queue the event for batch sending
+        sendMetricToServer(event);
+    }
+    
+    return event;
+}
+
+// Send metrics to server
+function sendMetricToServer(event) {
+    // Add form/document ID to the event
+    event.documentId = state.documentId;
+    event.sessionId = metrics.sessionId;
+    
+    // Use fetch to send the metric to a server endpoint
+    fetch('/api/metrics/log', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(event),
+        // Use keepalive to ensure the request completes even if page is unloading
+        keepalive: true
+    }).catch(error => {
+        console.error('Error sending metric to server:', error);
+    });
+}
+
+// Track image load performance
+function trackImageLoad(url, startTime, success, fallbackUsed) {
+    // Calculate timing
+    const endTime = Date.now();
+    const loadTime = endTime - startTime;
+    
+    // Update metrics
+    metrics.imageLoads.total++;
+    
+    if (success) {
+        metrics.imageLoads.success++;
+        if (fallbackUsed) {
+            metrics.imageLoads.fallbackSuccess++;
+        }
+    } else {
+        metrics.imageLoads.failure++;
+    }
+    
+    // Store timing data
+    metrics.imageLoads.timings.push({
+        url,
+        loadTime,
+        success,
+        fallbackUsed,
+        timestamp: endTime
+    });
+    
+    // Log the metric
+    logMetric('image', success ? 'load-success' : 'load-failure', 
+             url, {
+                 loadTime, 
+                 fallbackUsed,
+                 page: state.currentPage
+             });
+    
+    return loadTime;
+}
+
+// Track page navigation performance
+function trackPageNavigation(fromPage, toPage) {
+    const navigationTime = Date.now();
+    const timeFromLastChange = metrics.timestamps.lastPageChange > 0 ? 
+                            navigationTime - metrics.timestamps.lastPageChange : 0;
+    
+    metrics.timestamps.lastPageChange = navigationTime;
+    metrics.navigation.pageChanges++;
+    
+    // Log the metric
+    logMetric('navigation', 'page-change', 
+             `${fromPage}->${toPage}`, {
+                 timeFromLastChange,
+                 cumulativePageChanges: metrics.navigation.pageChanges
+             });
+}
+
+// Log an error
+function logErrorMetric(category, message, details) {
+    const errorEvent = {
+        timestamp: Date.now(),
+        category, 
+        message,
+        details
+    };
+    
+    metrics.errors.push(errorEvent);
+    
+    // Log the metric
+    logMetric('error', category, message, details);
+    
+    return errorEvent;
+}
+
+// Generate performance report
+function generatePerformanceReport() {
+    // Calculate statistics
+    const totalLoads = metrics.imageLoads.total;
+    const successRate = totalLoads > 0 ? 
+                       (metrics.imageLoads.success / totalLoads) * 100 : 0;
+    const fallbackRate = metrics.imageLoads.success > 0 ? 
+                        (metrics.imageLoads.fallbackSuccess / metrics.imageLoads.success) * 100 : 0;
+    
+    // Calculate average load time
+    let totalLoadTime = 0;
+    let successLoadTime = 0;
+    let successCount = 0;
+    
+    metrics.imageLoads.timings.forEach(timing => {
+        totalLoadTime += timing.loadTime;
+        if (timing.success) {
+            successLoadTime += timing.loadTime;
+            successCount++;
+        }
+    });
+    
+    const avgLoadTime = totalLoads > 0 ? totalLoadTime / totalLoads : 0;
+    const avgSuccessLoadTime = successCount > 0 ? successLoadTime / successCount : 0;
+    
+    // Create report
+    const report = {
+        sessionId: metrics.sessionId,
+        documentId: state.documentId,
+        sessionDuration: Date.now() - metrics.timestamps.sessionStart,
+        imageLoads: {
+            total: totalLoads,
+            success: metrics.imageLoads.success,
+            failure: metrics.imageLoads.failure,
+            successRate: successRate.toFixed(2) + '%',
+            fallbackSuccessRate: fallbackRate.toFixed(2) + '%',
+            averageLoadTime: avgLoadTime + 'ms',
+            averageSuccessLoadTime: avgSuccessLoadTime + 'ms'
+        },
+        navigation: {
+            pageChanges: metrics.navigation.pageChanges
+        },
+        errorCount: metrics.errors.length
+    };
+    
+    console.log('Performance Report:', report);
+    
+    // Send to server
+    if (CONFIG.metrics.sendToServer) {
+        fetch('/api/metrics/report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(report)
+        }).catch(error => {
+            console.error('Error sending performance report:', error);
+        });
+    }
+    
+    return report;
+}
+
+// Handle mousedown on document for rectangle selection
+function handleDocumentMouseDown(event) {
+    // Only start rectangle selection if rectangle select mode is active
+    if (!state.isRectangleSelect) return;
+    
+    // Don't trigger if clicking on a field marker or handle
+    if (event.target.classList.contains('field-marker') || 
+        event.target.classList.contains('resize-handle')) {
+        return;
+    }
+    
+    // Get position relative to the document container
+    const rect = elements.documentContainer.getBoundingClientRect();
+    const startX = event.clientX - rect.left;
+    const startY = event.clientY - rect.top;
+    
+    // Initialize rectangle selection state
+    state.rectangleSelect = {
+        startX,
+        startY,
+        endX: startX,
+        endY: startY,
+        active: true
+    };
+    
+    // Create visual selection rectangle
+    let selectionRect = document.getElementById('selectionRectangle');
+    if (selectionRect) {
+        selectionRect.remove();
+    }
+    
+    selectionRect = document.createElement('div');
+    selectionRect.id = 'selectionRectangle';
+    selectionRect.style.position = 'absolute';
+    selectionRect.style.border = '1px dashed #007bff';
+    selectionRect.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+    selectionRect.style.zIndex = '5';
+    selectionRect.style.pointerEvents = 'none';
+    
+    elements.documentContainer.appendChild(selectionRect);
+    
+    // Update the rectangle
+    updateSelectionRectangle();
+}
+
+// Handle mousemove during rectangle selection
+function handleDocumentMouseMove(event) {
+    if (!state.rectangleSelect.active) return;
+    
+    // Update end position
+    const rect = elements.documentContainer.getBoundingClientRect();
+    state.rectangleSelect.endX = event.clientX - rect.left;
+    state.rectangleSelect.endY = event.clientY - rect.top;
+    
+    // Update visual rectangle
+    updateSelectionRectangle();
+}
+
+// Handle mouseup after rectangle selection
+function handleDocumentMouseUp(event) {
+    if (!state.rectangleSelect.active) return;
+    
+    // Final update to end position
+    const rect = elements.documentContainer.getBoundingClientRect();
+    state.rectangleSelect.endX = event.clientX - rect.left;
+    state.rectangleSelect.endY = event.clientY - rect.top;
+    
+    // Select fields that intersect with the selection rectangle
+    selectFieldsInRectangle();
+    
+    // Clean up
+    state.rectangleSelect.active = false;
+    
+    // Remove selection rectangle
+    const selectionRect = document.getElementById('selectionRectangle');
+    if (selectionRect) {
+        selectionRect.remove();
+    }
+}
+
+// Update the selection rectangle visualization
+function updateSelectionRectangle() {
+    const selectionRect = document.getElementById('selectionRectangle');
+    if (!selectionRect) return;
+    
+    const { startX, startY, endX, endY } = state.rectangleSelect;
+    
+    // Calculate rectangle dimensions
+    const left = Math.min(startX, endX);
+    const top = Math.min(startY, endY);
+    const width = Math.abs(endX - startX);
+    const height = Math.abs(endY - startY);
+    
+    // Update visual rectangle
+    selectionRect.style.left = `${left}px`;
+    selectionRect.style.top = `${top}px`;
+    selectionRect.style.width = `${width}px`;
+    selectionRect.style.height = `${height}px`;
+}
+
+// Select fields that intersect with the selection rectangle
+function selectFieldsInRectangle() {
+    // Get selection rectangle coordinates
+    const { startX, startY, endX, endY } = state.rectangleSelect;
+    const selRect = {
+        left: Math.min(startX, endX),
+        top: Math.min(startY, endY),
+        right: Math.max(startX, endX),
+        bottom: Math.max(startY, endY)
+    };
+    
+    // Get all field markers
+    const fieldMarkers = document.querySelectorAll('.field-marker');
+    
+    // If not in multi-select mode, clear current selection
+    if (!state.isMultiSelect) {
+        state.selectedFields.clear();
+    }
+    
+    // Check each field marker for intersection with selection rectangle
+    fieldMarkers.forEach(marker => {
+        const fieldRect = marker.getBoundingClientRect();
+        const containerRect = elements.documentContainer.getBoundingClientRect();
+        
+        // Convert field rect to container coordinates
+        const fieldInContainer = {
+            left: fieldRect.left - containerRect.left,
+            top: fieldRect.top - containerRect.top,
+            right: fieldRect.right - containerRect.left,
+            bottom: fieldRect.bottom - containerRect.top
+        };
+        
+        // Check for intersection
+        if (!(fieldInContainer.right < selRect.left || 
+              fieldInContainer.left > selRect.right || 
+              fieldInContainer.bottom < selRect.top || 
+              fieldInContainer.top > selRect.bottom)) {
+            
+            // Add to selection
+            const fieldId = marker.dataset.fieldId;
+            state.selectedFields.add(fieldId);
+        }
+    });
+    
+    // Update UI to reflect new selection
+    renderFieldOverlay();
+    highlightSelectedFieldsInTable();
+    
+    // Update debug display
+    if (CONFIG.debugMode) {
+        updateDebugDisplay();
+    }
+}
+
+// Batch align the selected fields
+function batchAlign(alignType) {
+    if (state.selectedFields.size < 2) {
+        alert('Select at least two fields to align');
+        return;
+    }
+    
+    state.batchOperationActive = true;
+    
+    // Get selected field markers
+    const selectedMarkers = [];
+    state.selectedFields.forEach(fieldId => {
+        const marker = document.querySelector(`.field-marker[data-field-id="${fieldId}"]`);
+        if (marker) {
+            selectedMarkers.push(marker);
+        }
+    });
+    
+    // No valid markers found
+    if (selectedMarkers.length < 2) {
+        state.batchOperationActive = false;
+        return;
+    }
+    
+    // Determine target value for alignment
+    let targetValue;
+    switch (alignType) {
+        case 'left':
+            // Find leftmost value
+            targetValue = Math.min(...selectedMarkers.map(marker => parseFloat(marker.style.left)));
+            // Apply to all markers
+            selectedMarkers.forEach(marker => {
+                marker.style.left = `${targetValue}px`;
+            });
+            break;
+        case 'right':
+            // Find rightmost value
+            targetValue = Math.max(...selectedMarkers.map(marker => 
+                parseFloat(marker.style.left) + parseFloat(marker.style.width)
+            ));
+            // Apply to all markers
+            selectedMarkers.forEach(marker => {
+                const width = parseFloat(marker.style.width);
+                marker.style.left = `${targetValue - width}px`;
+            });
+            break;
+        case 'top':
+            // Find topmost value
+            targetValue = Math.min(...selectedMarkers.map(marker => parseFloat(marker.style.top)));
+            // Apply to all markers
+            selectedMarkers.forEach(marker => {
+                marker.style.top = `${targetValue}px`;
+            });
+            break;
+        case 'bottom':
+            // Find bottommost value
+            targetValue = Math.max(...selectedMarkers.map(marker => 
+                parseFloat(marker.style.top) + parseFloat(marker.style.height)
+            ));
+            // Apply to all markers
+            selectedMarkers.forEach(marker => {
+                const height = parseFloat(marker.style.height);
+                marker.style.top = `${targetValue - height}px`;
+            });
+            break;
+    }
+    
+    // Update field data with new positions
+    updateFieldPositionsFromMarkers(selectedMarkers);
+    
+    state.batchOperationActive = false;
+    state.isModified = true;
+    
+    // Check for overlaps
+    selectedMarkers.forEach(marker => {
+        checkFieldOverlaps(marker.dataset.fieldId, marker);
+    });
+    
+    // Update debug display
+    if (CONFIG.debugMode) {
+        updateDebugDisplay();
+    }
+}
+
+// Distribute fields evenly
+function batchDistribute(direction) {
+    if (state.selectedFields.size < 3) {
+        alert('Select at least three fields to distribute');
+        return;
+    }
+    
+    state.batchOperationActive = true;
+    
+    // Get selected field markers
+    const selectedMarkers = [];
+    state.selectedFields.forEach(fieldId => {
+        const marker = document.querySelector(`.field-marker[data-field-id="${fieldId}"]`);
+        if (marker) {
+            selectedMarkers.push(marker);
+        }
+    });
+    
+    // No valid markers found
+    if (selectedMarkers.length < 3) {
+        state.batchOperationActive = false;
+        return;
+    }
+    
+    if (direction === 'horizontal') {
+        // Sort by left position
+        selectedMarkers.sort((a, b) => parseFloat(a.style.left) - parseFloat(b.style.left));
+        
+        // Find leftmost and rightmost markers
+        const firstMarker = selectedMarkers[0];
+        const lastMarker = selectedMarkers[selectedMarkers.length - 1];
+        
+        // Calculate total distributable space
+        const startPos = parseFloat(firstMarker.style.left);
+        const endPos = parseFloat(lastMarker.style.left);
+        const totalSpace = endPos - startPos;
+        
+        // Calculate even spacing
+        const spacing = totalSpace / (selectedMarkers.length - 1);
+        
+        // Distribute markers
+        for (let i = 1; i < selectedMarkers.length - 1; i++) {
+            const marker = selectedMarkers[i];
+            const newLeft = startPos + (spacing * i);
+            marker.style.left = `${newLeft}px`;
+        }
+    } else if (direction === 'vertical') {
+        // Sort by top position
+        selectedMarkers.sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
+        
+        // Find topmost and bottommost markers
+        const firstMarker = selectedMarkers[0];
+        const lastMarker = selectedMarkers[selectedMarkers.length - 1];
+        
+        // Calculate total distributable space
+        const startPos = parseFloat(firstMarker.style.top);
+        const endPos = parseFloat(lastMarker.style.top);
+        const totalSpace = endPos - startPos;
+        
+        // Calculate even spacing
+        const spacing = totalSpace / (selectedMarkers.length - 1);
+        
+        // Distribute markers
+        for (let i = 1; i < selectedMarkers.length - 1; i++) {
+            const marker = selectedMarkers[i];
+            const newTop = startPos + (spacing * i);
+            marker.style.top = `${newTop}px`;
+        }
+    }
+    
+    // Update field data with new positions
+    updateFieldPositionsFromMarkers(selectedMarkers);
+    
+    state.batchOperationActive = false;
+    state.isModified = true;
+    
+    // Check for overlaps
+    selectedMarkers.forEach(marker => {
+        checkFieldOverlaps(marker.dataset.fieldId, marker);
+    });
+    
+    // Update debug display
+    if (CONFIG.debugMode) {
+        updateDebugDisplay();
+    }
+}
+
+// Set same size for all selected fields
+function batchSetSameSize(dimension) {
+    if (state.selectedFields.size < 2) {
+        alert('Select at least two fields to set the same size');
+        return;
+    }
+    
+    state.batchOperationActive = true;
+    
+    // Get selected field markers
+    const selectedMarkers = [];
+    state.selectedFields.forEach(fieldId => {
+        const marker = document.querySelector(`.field-marker[data-field-id="${fieldId}"]`);
+        if (marker) {
+            selectedMarkers.push(marker);
+        }
+    });
+    
+    // No valid markers found
+    if (selectedMarkers.length < 2) {
+        state.batchOperationActive = false;
+        return;
+    }
+    
+    // Use the first selected marker's size as the reference
+    const referenceMarker = selectedMarkers[0];
+    
+    if (dimension === 'width') {
+        const referenceWidth = parseFloat(referenceMarker.style.width);
+        selectedMarkers.forEach(marker => {
+            marker.style.width = `${referenceWidth}px`;
+        });
+    } else if (dimension === 'height') {
+        const referenceHeight = parseFloat(referenceMarker.style.height);
+        selectedMarkers.forEach(marker => {
+            marker.style.height = `${referenceHeight}px`;
+        });
+    }
+    
+    // Update field data with new sizes
+    updateFieldPositionsFromMarkers(selectedMarkers);
+    
+    state.batchOperationActive = false;
+    state.isModified = true;
+    
+    // Check for overlaps
+    selectedMarkers.forEach(marker => {
+        checkFieldOverlaps(marker.dataset.fieldId, marker);
+    });
+    
+    // Update debug display
+    if (CONFIG.debugMode) {
+        updateDebugDisplay();
+    }
+}
+
+// Update field positions from markers
+function updateFieldPositionsFromMarkers(markers) {
+    // Get image dimensions for normalization
+    const image = elements.documentImage;
+    const rect = image.getBoundingClientRect();
+    const { width, height } = rect;
+    
+    // Update each field
+    markers.forEach(marker => {
+        const fieldId = marker.dataset.fieldId;
+        const field = state.allFields.find(f => f.id === fieldId);
+        
+        if (field) {
+            // Update bbox with normalized coordinates
+            field.bbox = {
+                left: parseFloat(marker.style.left) / width,
+                top: parseFloat(marker.style.top) / height,
+                width: parseFloat(marker.style.width) / width,
+                height: parseFloat(marker.style.height) / height
+            };
+            
+            // Update right and bottom properties if they exist
+            if (field.bbox.right !== undefined) {
+                field.bbox.right = field.bbox.left + field.bbox.width;
+            }
+            if (field.bbox.bottom !== undefined) {
+                field.bbox.bottom = field.bbox.top + field.bbox.height;
+            }
+        }
+    });
+}
+
+// Update debug display with detailed information
+function updateDebugDisplay() {
+    if (!CONFIG.debugMode) return;
+    
+    // Make sure debug area is visible
+    const debugInfo = document.getElementById('debugInfo');
+    debugInfo.style.display = 'block';
+    
+    // Update selection info
+    const selectionInfo = document.getElementById('selectionInfo');
+    if (selectionInfo) {
+        if (state.selectedFields.size === 0) {
+            selectionInfo.textContent = "No fields selected";
+        } else {
+            selectionInfo.textContent = `${state.selectedFields.size} field(s) selected: ${Array.from(state.selectedFields).join(', ')}`;
+        }
+    }
+    
+    // Update field details if a specific field ID is provided
+    if (state.selectedFields.size > 0) {
+        const firstFieldId = Array.from(state.selectedFields)[0];
+        const field = state.allFields.find(f => f.id === firstFieldId);
+        
+        if (field) {
+            const selectedFieldDetails = document.getElementById('selectedFieldDetails');
+            if (selectedFieldDetails) {
+                if (state.selectedFields.size === 1) {
+                    selectedFieldDetails.textContent = JSON.stringify(field, null, 2);
+                } else {
+                    // For multiple selection, show a summary
+                    const summary = {
+                        selectionCount: state.selectedFields.size,
+                        selectedFields: Array.from(state.selectedFields),
+                        batchOperationsAvailable: {
+                            align: state.selectedFields.size >= 2,
+                            distribute: state.selectedFields.size >= 3,
+                            sameSize: state.selectedFields.size >= 2
+                        }
+                    };
+                    selectedFieldDetails.textContent = JSON.stringify(summary, null, 2);
+                }
+            }
+        }
     }
 } 

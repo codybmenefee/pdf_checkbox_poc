@@ -157,6 +157,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary" id="downloadFormButton">Download</button>
                     <button type="button" class="btn btn-success" id="validateFormButton">Validate</button>
+                    <button type="button" class="btn btn-info" id="visualizeFormButton">Visualize</button>
                     <button type="button" class="btn btn-info" id="exportFormButton">Export</button>
                 </div>
             </div>
@@ -236,6 +237,18 @@
                 }
             });
             document.getElementById('confirmExportButton').addEventListener('click', exportForm);
+            document.getElementById('downloadFormButton').addEventListener('click', function() {
+                downloadForm(currentFormId);
+            });
+            document.getElementById('validateFormButton').addEventListener('click', function() {
+                window.location.href = `/ui/validation?form_id=${currentFormId}`;
+            });
+            document.getElementById('exportFormButton').addEventListener('click', function() {
+                showExportModal(currentFormId);
+            });
+            document.getElementById('visualizeFormButton').addEventListener('click', function() {
+                visualizeForm(currentFormId);
+            });
         });
 
         // Load templates
@@ -770,6 +783,17 @@
                 exportButton.disabled = false;
                 exportButton.innerHTML = 'Export';
             });
+        }
+
+        // Function to visualize the form with fields overlaid
+        function visualizeForm(formId) {
+            if (!formId) {
+                alert('No form selected for visualization.');
+                return;
+            }
+            
+            // Redirect to the visualization page with the form ID
+            window.open(`/ui/field-visualization?form_id=${formId}`, '_blank');
         }
     </script>
 </body>

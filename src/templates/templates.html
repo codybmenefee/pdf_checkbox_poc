@@ -141,6 +141,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-info" id="visualizeTemplateButton">Visualize Fields</button>
+                    <button type="button" class="btn btn-success" id="enhancedVisualizeButton">Enhanced Visualization</button>
                     <button type="button" class="btn btn-primary" id="useTemplateButton">Use Template</button>
                     <button type="button" class="btn btn-danger" id="deleteTemplateButton">Delete Template</button>
                 </div>
@@ -243,6 +244,9 @@
                                 <button type="button" class="btn btn-sm btn-info visualize-template" data-template-id="${template.template_id}">
                                     Visualize Fields
                                 </button>
+                                <button type="button" class="btn btn-sm btn-success enhanced-visualize" data-template-id="${template.template_id}">
+                                    Enhanced View
+                                </button>
                                 <button type="button" class="btn btn-sm btn-danger delete-template" data-template-id="${template.template_id}">
                                     Delete
                                 </button>
@@ -270,6 +274,14 @@
                 button.addEventListener('click', function() {
                     const templateId = this.getAttribute('data-template-id');
                     visualizeTemplate(templateId);
+                });
+            });
+
+            // Add event listeners to enhanced visualize buttons
+            document.querySelectorAll('.enhanced-visualize').forEach(button => {
+                button.addEventListener('click', function() {
+                    const templateId = this.getAttribute('data-template-id');
+                    window.location.href = `/ui/templates/visualize?template_id=${templateId}`;
                 });
             });
 
@@ -396,6 +408,13 @@
                     visualizeTemplateButton.setAttribute('data-template-id', templateId);
                     visualizeTemplateButton.addEventListener('click', function() {
                         visualizeTemplate(templateId);
+                    });
+
+                    // Set up the Enhanced Visualization button
+                    const enhancedVisualizeButton = document.getElementById('enhancedVisualizeButton');
+                    enhancedVisualizeButton.setAttribute('data-template-id', templateId);
+                    enhancedVisualizeButton.addEventListener('click', function() {
+                        window.location.href = `/ui/templates/visualize?template_id=${templateId}`;
                     });
 
                     // Set up the Delete Template button

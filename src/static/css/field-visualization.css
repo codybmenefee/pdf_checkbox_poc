@@ -63,6 +63,7 @@ body {
 #documentContainer {
     transform-origin: top left;
     transition: transform 0.2s ease-out;
+    position: relative; /* Ensure this for proper overlay positioning */
 }
 
 /* Field overlay styles */
@@ -250,21 +251,72 @@ body {
     border: 1px solid #ced4da;
 }
 
-/* Debug styles */
+/* Debug styling */
 .field-debug {
-    border: 2px dashed #ff0000;
-    background-color: rgba(255, 0, 0, 0.1);
-    z-index: 40;
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.3);
 }
 
 .debug-info {
     position: absolute;
     bottom: -16px;
-    right: 0;
+    left: 0;
     background-color: rgba(0, 0, 0, 0.7);
     color: white;
-    font-size: 9px;
     padding: 1px 3px;
-    border-radius: 2px;
-    white-space: nowrap;
+    font-size: 9px;
+    pointer-events: none;
+}
+
+/* Debug area */
+#debugArea {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+
+.field-debug-entry {
+    border-bottom: 1px solid #dee2e6;
+    padding: 4px 0;
+}
+
+.field-debug-entry:last-child {
+    border-bottom: none;
+}
+
+/* Debug overlay */
+.debug-overlay {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    font-size: 12px;
+    border-radius: 3px;
+    z-index: 1000;
+}
+
+/* Checkbox content */
+.checkbox-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.checked {
+    color: #198754;
+}
+
+.unchecked {
+    color: #dc3545;
 } 
