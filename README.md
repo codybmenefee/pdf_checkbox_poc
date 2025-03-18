@@ -38,6 +38,16 @@ MongoDB is used for data storage with modular components:
 - **Visualization**: Visualization of form fields and checkboxes (`visualization.py`)
 - **API Layer**: REST API for client interactions (`ui_api.py`, `form_api.py`, `db_api.py`)
 
+### Static File Management
+
+The application serves static files (including visualizations and UI assets) through multiple endpoints:
+
+- `/static/*` - Standard static file access
+- `/api/visualizations/<id>/*` - API access to visualization files
+- `/api/ui_visualizations/<id>/*` - Alternative API access to visualization files
+
+See the [Static File Configuration](docs/static_file_configuration.md) documentation for more details.
+
 ### Web Interface
 
 Flask-based web application with routes defined in `app.py`.
@@ -67,6 +77,11 @@ python src/run_tests.py
 For visualization-specific tests:
 ```
 python src/run_visualization_tests.py
+```
+
+For static file handling tests:
+```
+python -m unittest src/test_static_file_handling.py
 ```
 
 ## License
